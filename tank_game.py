@@ -31,7 +31,7 @@ DIRS = [(0, -1), (1, 0), (0, 1), (-1, 0)]
 
 EMPTY = 0; BRICK = 1; STEEL = 2; GRASS = 3; WATER = 4; CRATE = 5; BASE = 6
 
-MAP_THEMES = ["default", "desert", "snow", "city", "jungle", "lava"]
+MAP_THEMES = ["kawaii_woodland", "default", "desert", "snow", "city", "jungle", "lava"]
 
 pygame.init()
 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
@@ -1468,7 +1468,8 @@ class Game:
 
         # Garage / skin selection
         self.skin_idx = 0
-        self.skin_names = [f"Tier {i + 1}" for i in range(5)]
+        self.skin_names = ["NEKO CREAM", "SAKURA PINK", "SKY DRIFTER",
+                           "LAVENDER MAGE", "RAINBOW MAX"]
         self.unlocked_skins = {0}
 
         # Achievements (id -> (label, unlocked))
@@ -1524,7 +1525,9 @@ class Game:
         }
 
     def get_theme_for_level(self, level):
-        themes = ["default", "desert", "jungle", "snow", "city", "lava"]
+        # Lead with kawaii_woodland so players see the new theme on level 1
+        themes = ["kawaii_woodland", "default", "desert", "jungle",
+                  "snow", "city", "lava"]
         return themes[(level - 1) % len(themes)]
 
     def start_level(self, level):
@@ -2067,6 +2070,9 @@ class Game:
                         if tile == CRATE or random.random() < 0.1:
                             item_kinds = ["health", "shield", "speed", "star", "rapid", "multi",
                                           "pierce", "bomb", "freeze", "grenade", "max_power"]
+                            # Sprinkle a rare gem drop (~6%) for kawaii currency
+                            if random.random() < 0.06:
+                                item_kinds = item_kinds + ["gem"]
                             self.items.append(Item(gx, gy, random.choice(item_kinds)))
                     if bullet.kind != "pierce":
                         bullet.alive = False
@@ -2146,6 +2152,11 @@ class Game:
                     gain = random.randint(50, 150)
                     self.money += gain; self.total_money_earned += gain
                     floating_texts.append(FloatingText(self.player.x, self.player.y, f"+{gain}$", (255, 215, 0)))
+                elif item.kind == "gem":
+                    gain = random.randint(2, 5)
+                    self.gems += gain
+                    floating_texts.append(FloatingText(self.player.x,
+                        self.player.y, f"+{gain} GEM", (140, 220, 255)))
                 else:
                     self.apply_item_ultra(item.kind)
                 self.items.remove(item)
@@ -2288,99 +2299,133 @@ class Game:
     # ═══════════════════════════════════
     def draw_shop(self):
         s = self._surf
-        # Gradient background
+        # Pastel night-sky gradient
         for y in range(SH):
             t = y / SH
-            c = (int(10 + 20 * t), int(15 + 25 * t), int(30 + 40 * t))
+            c = (int(45 + 25 * t), int(35 + 25 * t), int(75 + 35 * t))
             pygame.draw.line(s, c, (0, y), (SW, y))
+        draw_pastel_starfield(s, self.tick, density=40)
 
-        # Header
-        header_h = 80
-        header_s = pygame.Surface((SW, header_h), pygame.SRCALPHA)
-        pygame.draw.rect(header_s, (20, 30, 60, 220), (0, 0, SW, header_h))
-        s.blit(header_s, (0, 0))
+        # Header band
+        header_h = 70
+        draw_kawaii_panel(s, (12, 8, SW - 24, header_h), fill=(60, 45, 100),
+                          border=(255, 200, 230), radius=18,
+                          shadow_offset=4, glow=False)
+        draw_rainbow_text(s, "TANK SHOP", (SW // 2, 14), FONT_TITLE,
+                          tick=self.tick)
 
-        title = FONT_TITLE.render("CUA HANG XE TANG", True, (255, 220, 50))
-        shadow = FONT_TITLE.render("CUA HANG XE TANG", True, (100, 80, 0))
-        s.blit(shadow, (SW // 2 - title.get_width() // 2 + 2, 12))
-        s.blit(title, (SW // 2 - title.get_width() // 2, 10))
+        # Currency + backpack pills under header
+        self._draw_currency_panel(s, SW - 270, 12)
 
-        # Decorative line
-        pygame.draw.line(s, (255, 220, 50), (40, header_h - 5), (SW - 40, header_h - 5), 2)
-
-        # Balance
-        money_text = FONT_MED.render(f"TAI KHOAN: ${self.money}", True, (100, 255, 120))
-        s.blit(money_text, (SW // 2 - money_text.get_width() // 2, header_h + 5))
-
-        # Backpack status
-        bp_text = FONT_SM.render(f"BALO: {len(self.backpack)}/3", True, (180, 180, 200))
-        s.blit(bp_text, (SW - 100, header_h + 8))
+        bp_panel_x, bp_panel_y, bp_w, bp_h = 24, 24, 200, 38
+        draw_kawaii_panel(s, (bp_panel_x, bp_panel_y, bp_w, bp_h),
+                          fill=(70, 50, 110), border=(180, 230, 255),
+                          radius=14, shadow_offset=2, glow=False)
+        bp_t = FONT_MED.render(f"BALO {len(self.backpack)}/3", True,
+                               (255, 240, 220))
+        s.blit(bp_t, (bp_panel_x + 16, bp_panel_y + 8))
+        # Backpack item icons
+        for i in range(3):
+            slot_x = bp_panel_x + 110 + i * 28
+            slot_y = bp_panel_y + 6
+            pygame.draw.rect(s, (40, 30, 70),
+                             (slot_x, slot_y, 24, 24), border_radius=6)
+            pygame.draw.rect(s, (180, 200, 255),
+                             (slot_x, slot_y, 24, 24), 2, border_radius=6)
+            if i < len(self.backpack):
+                k = self.backpack[i]
+                if k in sprites.items:
+                    icon = pygame.transform.scale(sprites.items[k], (20, 20))
+                    s.blit(icon, (slot_x + 2, slot_y + 2))
 
         items = [
-            ("1", "DAN DA HUONG", "Ban ra 3 tia cuc manh", 500, "multi"),
-            ("2", "BAN SIEU TOC", "Dan toc do cao lien tuc", 800, "rapid"),
-            ("3", "DAN XUYEN THAU", "Ban xuyen tuong & ke dich", 600, "pierce"),
-            ("4", "GIAP THEP", "Tang 3 diem giap bao ve", 300, "shield"),
-            ("5", "SUA CHUA XE", "Hoi day mau ngay lap tuc", 200, "health"),
-            ("6", "THEM MANG", "Tang 1 mang du phong", 1000, "life"),
-            ("7", "BOM NUKE", "Huy diet toan bo ke thu", 1000, "star"),
-            ("8", "NANG LUONG", "Hoi day nang luong nitro", 150, "speed"),
-            ("9", "TIA LASER", "Ban tia laser sieu manh", 900, "laser"),
-            ("0", "DAN PLASMA", "Dan plasma huy diet", 750, "plasma"),
+            ("1", "DAN DA HUONG", "Ban ra 3 tia cuc manh",     500,  "multi",   "gold"),
+            ("2", "BAN SIEU TOC", "Dan toc do cao lien tuc",   800,  "rapid",   "gold"),
+            ("3", "DAN XUYEN THAU", "Ban xuyen tuong & ke dich", 600, "pierce",  "gold"),
+            ("4", "GIAP THEP",    "Tang 3 diem giap bao ve",   300,  "shield",  "gold"),
+            ("5", "SUA CHUA XE",  "Hoi day mau ngay lap tuc",  200,  "health",  "gold"),
+            ("6", "THEM MANG",    "Tang 1 mang du phong",      1000, "life",    "gold"),
+            ("7", "BOM NUKE",     "Huy diet toan bo ke thu",   1000, "star",    "gold"),
+            ("8", "NANG LUONG",   "Hoi day nang luong nitro",  150,  "speed",   "gold"),
+            ("9", "TIA LASER",    "Ban tia laser sieu manh",   900,  "laser",   "gold"),
+            ("0", "DAN PLASMA",   "Dan plasma huy diet",       750,  "plasma",  "gold"),
+            ("-", "GEM PACK x10", "Doi vang lay 10 gem kawaii", 500,  "gem",     "gold"),
+            ("=", "GEM PACK x50", "Doi vang lay 50 gem (uu dai)", 2000, "gem",   "gold"),
         ]
 
-        start_y = header_h + 30
-        for i, (key, name, desc, price, kind) in enumerate(items):
+        start_y = 90
+        card_h = 70
+        for i, (key, name, desc, price, kind, currency) in enumerate(items):
             col = i % 2
             row = i // 2
             bx = 30 + col * (SW // 2 - 10)
-            by = start_y + row * 78
+            by = start_y + row * (card_h + 8)
             w = SW // 2 - 50
 
-            # Card background
-            affordable = self.money >= price
-            card_color = (40, 55, 85) if affordable else (30, 30, 40)
-            border_color = (80, 130, 200) if affordable else (50, 50, 60)
+            balance = self.money if currency == "gold" else self.gems
+            affordable = balance >= price
+            color_idx = i % 5
+            base_colors = [
+                ((255, 170, 210), (255, 100, 160)),
+                ((255, 220, 140), (255, 170, 60)),
+                ((180, 230, 255), (110, 180, 240)),
+                ((200, 255, 200), (110, 220, 130)),
+                ((220, 200, 255), (170, 130, 240)),
+            ]
+            light, dark = base_colors[color_idx]
+            fill = (60, 45, 95) if affordable else (35, 30, 60)
+            border = light if affordable else (110, 90, 130)
+            draw_kawaii_panel(s, (bx, by, w, card_h), fill=fill, border=border,
+                              radius=14, shadow_offset=3, glow=False)
 
-            pygame.draw.rect(s, card_color, (bx, by, w, 68), border_radius=10)
-            pygame.draw.rect(s, border_color, (bx, by, w, 68), 2, border_radius=10)
+            # Hotkey badge (round pastel pill)
+            kx, ky, ks = bx + 12, by + 10, 28
+            pygame.draw.circle(s, dark, (kx + ks // 2, ky + ks // 2), ks // 2)
+            pygame.draw.circle(s, (255, 255, 255),
+                               (kx + ks // 2, ky + ks // 2), ks // 2, 2)
+            kl = FONT_MED.render(key, True, (255, 255, 255))
+            s.blit(kl, (kx + ks // 2 - kl.get_width() // 2,
+                        ky + ks // 2 - kl.get_height() // 2))
 
-            # Gloss
-            gloss = pygame.Surface((w - 4, 20), pygame.SRCALPHA)
-            pygame.draw.rect(gloss, (255, 255, 255, 15), (0, 0, w - 4, 20), border_radius=8)
-            s.blit(gloss, (bx + 2, by + 2))
-
-            # Key
-            key_c = (255, 215, 0) if affordable else (80, 80, 80)
-            key_bg = pygame.Surface((28, 28), pygame.SRCALPHA)
-            pygame.draw.rect(key_bg, (*key_c[:3], 40), (0, 0, 28, 28), border_radius=6)
-            pygame.draw.rect(key_bg, key_c, (0, 0, 28, 28), 2, border_radius=6)
-            s.blit(key_bg, (bx + 8, by + 8))
-            kl = FONT_MED.render(key, True, key_c)
-            s.blit(kl, (bx + 22 - kl.get_width() // 2, by + 12))
-
-            # Icon
+            # Item icon
             if kind in sprites.items:
-                s.blit(sprites.items[kind], (bx + 10, by + 38))
+                s.blit(sprites.items[kind], (bx + 12, by + 38))
+            elif kind == "gem":
+                draw_gem_icon(s, bx + 12, by + 38, 26)
 
-            # Name & Desc
-            name_c = (255, 255, 255) if affordable else (120, 120, 120)
-            name_t = FONT_MED.render(name, True, name_c)
-            s.blit(name_t, (bx + 45, by + 10))
-            desc_t = FONT_SM.render(desc, True, (150, 155, 170))
-            s.blit(desc_t, (bx + 45, by + 32))
+            # Name + desc
+            name_c = (255, 255, 255) if affordable else (160, 150, 180)
+            s.blit(FONT_MED.render(name, True, name_c), (bx + 50, by + 10))
+            s.blit(FONT_SM.render(desc, True, (210, 220, 240) if affordable
+                                  else (130, 130, 160)),
+                   (bx + 50, by + 33))
 
-            # Price
-            p_c = (80, 255, 120) if affordable else (255, 80, 80)
-            p_t = FONT_MED.render(f"${price}", True, p_c)
-            s.blit(p_t, (bx + 45, by + 48))
+            # Price (icon + amount, right-aligned in card)
+            p_c = (130, 240, 160) if affordable else (255, 140, 140)
+            p_t = FONT_MED.render(f"{price:,}", True, p_c)
+            ic_size = 22
+            ic_x = bx + w - p_t.get_width() - ic_size - 18
+            ic_y = by + card_h - 30
+            if currency == "gold":
+                draw_coin_icon(s, ic_x, ic_y, ic_size)
+            else:
+                draw_gem_icon(s, ic_x, ic_y, ic_size)
+            s.blit(p_t, (ic_x + ic_size + 4, ic_y + 1))
 
-        # Continue
+        # Continue button
         pulse = abs(math.sin(self.tick * 0.08))
-        msg = "[ ENTER ] MAN TIEP THEO" if self.won_level else "[ ENTER ] CHOI LAI"
-        c_val = int(180 + pulse * 75)
-        instr = FONT_MED.render(msg, True, (c_val, 255, c_val))
-        s.blit(instr, (SW // 2 - instr.get_width() // 2, SH - 45))
+        msg = "[ ENTER ]  TIEP TUC " + (
+            "MAN TIEP THEO" if self.won_level else "CHOI LAI MAN")
+        instr = FONT_MED.render(msg, True,
+                                (int(200 + 55 * pulse), 255, int(200 + 55 * pulse)))
+        bw, bh = instr.get_width() + 60, 44
+        bx = SW // 2 - bw // 2
+        by = SH - bh - 12
+        draw_kawaii_panel(s, (bx, by, bw, bh), fill=(70, 50, 110),
+                          border=(180, 240, 200), radius=22,
+                          shadow_offset=3, glow=True)
+        s.blit(instr, (SW // 2 - instr.get_width() // 2,
+                       by + (bh - instr.get_height()) // 2))
 
     def handle_shop_events(self, ev):
         if ev.type == pygame.KEYDOWN:
@@ -2393,25 +2438,41 @@ class Game:
                 transition.start(start_next)
 
             prices = {"1": 500, "2": 800, "3": 600, "4": 300, "5": 200,
-                      "6": 1000, "7": 1000, "8": 150, "9": 900, "0": 750}
-            kinds = {"1": "multi", "2": "rapid", "3": "pierce", "4": "shield", "5": "health",
-                     "6": "life", "7": "star", "8": "speed", "9": "laser", "0": "plasma"}
+                      "6": 1000, "7": 1000, "8": 150, "9": 900, "0": 750,
+                      "-": 500, "=": 2000}
+            kinds = {"1": "multi", "2": "rapid", "3": "pierce", "4": "shield",
+                     "5": "health", "6": "life", "7": "star", "8": "speed",
+                     "9": "laser", "0": "plasma",
+                     "-": "gem10", "=": "gem50"}
             key_name = pygame.key.name(ev.key)
             if key_name in prices:
                 cost = prices[key_name]
-                if self.money >= cost:
-                    if len(self.backpack) < 3:
-                        self.money -= cost
-                        self.stats["money_spent"] += cost
-                        snd_buy.play()
-                        self.backpack.append(kinds[key_name])
-                        floating_texts.append(FloatingText(SW // 2, SH // 2, f"DA THEM {kinds[key_name].upper()}!", (100, 255, 100), center_bounce=True))
-                    else:
-                        snd_deny.play()
-                        floating_texts.append(FloatingText(SW // 2, SH // 2, "BALO DAY!", (255, 80, 80), center_bounce=True))
-                else:
+                kind = kinds[key_name]
+                if self.money < cost:
                     snd_deny.play()
-                    floating_texts.append(FloatingText(SW // 2, SH // 2, "KHONG DU TIEN!", (255, 80, 80), center_bounce=True))
+                    floating_texts.append(FloatingText(SW // 2, SH // 2,
+                        "KHONG DU VANG!", (255, 80, 80), center_bounce=True))
+                elif kind in ("gem10", "gem50"):
+                    gain = 10 if kind == "gem10" else 50
+                    self.money -= cost
+                    self.gems += gain
+                    self.stats["money_spent"] += cost
+                    snd_buy.play()
+                    floating_texts.append(FloatingText(SW // 2, SH // 2,
+                        f"+{gain} GEM!", (180, 220, 255),
+                        center_bounce=True))
+                elif len(self.backpack) >= 3:
+                    snd_deny.play()
+                    floating_texts.append(FloatingText(SW // 2, SH // 2,
+                        "BALO DAY!", (255, 80, 80), center_bounce=True))
+                else:
+                    self.money -= cost
+                    self.stats["money_spent"] += cost
+                    snd_buy.play()
+                    self.backpack.append(kind)
+                    floating_texts.append(FloatingText(SW // 2, SH // 2,
+                        f"DA THEM {kind.upper()}!",
+                        (100, 255, 100), center_bounce=True))
 
     # ═══════════════════════════════════
     # DRAW
@@ -2629,7 +2690,8 @@ class Game:
         badge_x = SW // 2 - 50
         theme_colors = {
             "default": (50, 100, 150), "desert": (180, 140, 60), "snow": (100, 150, 200),
-            "city": (80, 80, 100), "jungle": (40, 120, 60), "lava": (150, 50, 30)
+            "city": (80, 80, 100), "jungle": (40, 120, 60), "lava": (150, 50, 30),
+            "kawaii_woodland": (230, 150, 200),
         }
         bc = theme_colors.get(self.map_theme, (50, 100, 150))
         pygame.draw.rect(surf, bc, (badge_x, hud_y + 6, 100, 22), border_radius=11)
