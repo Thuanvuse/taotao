@@ -40,7 +40,7 @@ pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
 START_WINDOWED = os.environ.get("TANK_WINDOWED", "0") == "1"
 _screen_flags = (0 if START_WINDOWED else pygame.FULLSCREEN) | pygame.SCALED
 screen = pygame.display.set_mode((SW, SH), _screen_flags)
-pygame.display.set_caption("TANK DAI CHIEN - ULTIMATE")
+pygame.display.set_caption("Tank Đại Chiến - Ultimate")
 clock = pygame.time.Clock()
 is_fullscreen = not START_WINDOWED
 
@@ -1463,32 +1463,32 @@ class Game:
         self.player_name = os.environ.get("TANK_PLAYER_NAME", "Thuanvuse")
 
         # Kawaii title menu
-        self.menu_buttons = ["BATTLE", "GARAGE", "UPGRADE", "ACHIEVEMENTS"]
+        self.menu_buttons = ["CHIẾN ĐẤU", "GA-RA", "NÂNG CẤP", "THÀNH TỰU"]
         self.menu_sel = 0
 
         # Garage / skin selection
         self.skin_idx = 0
-        self.skin_names = ["NEKO CREAM", "SAKURA PINK", "SKY DRIFTER",
-                           "LAVENDER MAGE", "RAINBOW MAX"]
+        self.skin_names = ["NEKO KEM", "HOA ANH ĐÀO", "BAY GIỮA TRỜI",
+                           "PHÙ THUỶ OẢI HƯƠNG", "CẦU VỒNG MAX"]
         self.unlocked_skins = {0}
 
-        # Achievements (id -> (label, unlocked))
+        # Achievements (id -> (name_vi, desc_vi))
         self.achievement_defs = [
-            ("FIRST_BLOOD", "Diet ke dich dau tien"),
-            ("LEVEL_5", "Hoan thanh level 5"),
-            ("LEVEL_10", "Hoan thanh level 10"),
-            ("BOSS_SLAYER", "Ha guc 1 Boss"),
-            ("RICH", "Tich luy 5000 GP"),
-            ("MAX_TIER", "Dat Tank tier 4 (MAX)"),
-            ("FROZEN_HUNTER", "Dung FREEZE 3 lan"),
-            ("GRENADIER", "Dung GRENADE 5 lan"),
+            ("FIRST_BLOOD", "DIỆT MỞ MÀN", "Diệt kẻ địch đầu tiên"),
+            ("LEVEL_5", "VƯỢT MÀN 5", "Hoàn thành màn 5"),
+            ("LEVEL_10", "VƯỢT MÀN 10", "Hoàn thành màn 10"),
+            ("BOSS_SLAYER", "SÁT THỦ BOSS", "Hạ gục 1 Boss"),
+            ("RICH", "PHÚ HỘ", "Tích luỹ 5000 vàng"),
+            ("MAX_TIER", "TANK TỐI THƯỢNG", "Đạt tank cấp 4 (MAX)"),
+            ("FROZEN_HUNTER", "THỢ SĂN BĂNG", "Dùng ĐÓNG BĂNG 3 lần"),
+            ("GRENADIER", "PHÁO THỦ", "Dùng LỰU ĐẠN 5 lần"),
         ]
         self.achievements_unlocked = set()
         self.freeze_uses = 0
         self.grenade_uses = 0
 
         # Pause
-        self.pause_items = ["TIEP TUC", "CHOI LAI", "VAO SHOP", "CACH CHOI", "VE SANH", "THOAT GAME"]
+        self.pause_items = ["TIẾP TỤC", "CHƠI LẠI", "VÀO SHOP", "CÁCH CHƠI", "VỀ SẢNH", "THOÁT GAME"]
         self.pause_sel = 0
 
         # Shop
@@ -1585,27 +1585,27 @@ class Game:
         if level == 1:
             self.total_enemies = 3
             self.max_alive = 1
-            self.mission_text = "NHIEM VU: TIEU DIET 3 XE TANG DICH"
+            self.mission_text = "NHIỆM VỤ: TIÊU DIỆT 3 XE TĂNG ĐỊCH"
             self.mission_timer = 240
         elif level == 2:
             self.total_enemies = 4
             self.max_alive = 2
             num_chickens = 5
-            self.mission_text = "NHIEM VU: GIET GA LAY TIEN DE MUA DO"
+            self.mission_text = "NHIỆM VỤ: GIẾT GÀ LẤY TIỀN ĐỂ MUA ĐỒ"
             self.mission_timer = 240
         elif level == 3:
             self.total_enemies = 8
             self.max_alive = 4
             num_chickens = 4
             num_dogs = 2
-            self.mission_text = "CANH BAO: CO CHO DIEN XUAT HIEN!"
+            self.mission_text = "CẢNH BÁO: CÓ CHÓ ĐIÊN XUẤT HIỆN!"
             self.mission_timer = 240
         elif is_boss_level:
             self.total_enemies = 3 + level
             self.max_alive = min(5 + level // 2, 12)
             num_chickens = 3
             num_dogs = 2
-            self.mission_text = f"BOSS FIGHT! MAN {level} - BOSS XUAT HIEN!"
+            self.mission_text = f"ĐẠI CHIẾN BOSS! MÀN {level} - BOSS XUẤT HIỆN!"
             self.mission_timer = 300
             snd_boss_alert.play()
         else:
@@ -1613,7 +1613,7 @@ class Game:
             self.max_alive = min(3 + level, 10)
             num_chickens = 3 + level
             num_dogs = 1 + level // 3
-            self.mission_text = f"NHIEM VU: TIEU DIET {self.total_enemies} KE DICH"
+            self.mission_text = f"NHIỆM VỤ: TIÊU DIỆT {self.total_enemies} KẺ ĐỊCH"
             self.mission_timer = 180
 
         self.enemies_to_spawn = self.total_enemies
@@ -1678,21 +1678,21 @@ class Game:
         self.shake_amount = min(self.shake_amount + 5, 25)
 
         if self.combo == 2:
-            floating_texts.append(FloatingText(x, y - 20, "DOUBLE KILL!", (255, 100, 255)))
+            floating_texts.append(FloatingText(x, y - 20, "HẠ ĐÔI!", (255, 100, 255)))
             self.money += 20
         elif self.combo == 3:
-            floating_texts.append(FloatingText(x, y - 20, "TRIPLE KILL!!", (255, 50, 50)))
+            floating_texts.append(FloatingText(x, y - 20, "HẠ BA!!", (255, 50, 50)))
             self.money += 50
             snd_combo.play()
         elif self.combo == 4:
-            floating_texts.append(FloatingText(x, y - 20, "RAMPAGE!!!", (255, 0, 0)))
+            floating_texts.append(FloatingText(x, y - 20, "ĐIÊN CUỒNG!!!", (255, 0, 0)))
             self.money += 100
             snd_combo.play()
         elif self.combo >= 5:
-            floating_texts.append(FloatingText(x, y - 20, "GODLIKE!!!!!", (255, 0, 255), huge=True))
+            floating_texts.append(FloatingText(x, y - 20, "THẦN THÁNH!!!!!", (255, 0, 255), huge=True))
             self.money += 200
             snd_combo.play()
-            trigger_achievement("GODLIKE!", "5+ combo trong 1 chuoi!", (255, 0, 255))
+            trigger_achievement("THẦN THÁNH!", "5+ chuỗi trong 1 loạt!", (255, 0, 255))
 
         if random.random() < 0.2 + (self.combo * 0.05):
             self.items.append(Item(int(x // TS), int(y // TS), "money"))
@@ -1858,14 +1858,14 @@ class Game:
                         self.player.max_hp = 10
                         self.player.hp = 10
                         self.player.shield = 5
-                        msg = "AUTO BUFF: ON"
+                        msg = "BUFF TỰ ĐỘNG: BẬT"
                     else:
                         self.player.speed = 1.8
                         self.player.shoot_delay = 20
                         normal_max = 3 + min(self.level // 3, 3)
                         self.player.max_hp = normal_max
                         self.player.hp = min(self.player.hp, normal_max)
-                        msg = "AUTO BUFF: OFF"
+                        msg = "BUFF TỰ ĐỘNG: TẮT"
                     c = (80, 255, 130) if self.auto_mode else (255, 100, 80)
                     floating_texts.append(FloatingText(self.player.x, self.player.y - 40, msg, c))
 
@@ -1873,7 +1873,7 @@ class Game:
                     self.auto_algo_idx = (self.auto_algo_idx + 1) % len(self.auto_algos)
                     self.auto_algo = self.auto_algos[self.auto_algo_idx]
                     self.auto_path = []
-                    floating_texts.append(FloatingText(self.player.x, self.player.y - 80, f"ALGO: {self.auto_algo}", (255, 255, 0), huge=True))
+                    floating_texts.append(FloatingText(self.player.x, self.player.y - 80, f"THUẬT TOÁN: {self.auto_algo}", (255, 255, 0), huge=True))
 
                 if ev.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = ev.key - pygame.K_1
@@ -2037,7 +2037,7 @@ class Game:
                     d.alive = False
                     spawn_particles(d.x, d.y, (150, 100, 50), 10)
                     self.shake_amount = 10
-                    floating_texts.append(FloatingText(self.player.x, self.player.y, "CHO CAN!", (255, 50, 50)))
+                    floating_texts.append(FloatingText(self.player.x, self.player.y, "CHÓ CẮN!", (255, 50, 50)))
                     if killed:
                         self.explosions.append(Explosion(self.player.x, self.player.y, big=True))
                         snd_explode.play()
@@ -2107,7 +2107,7 @@ class Game:
                         val = random.choice([50, 100, 200])
                         self.register_kill(c.x, c.y, val)
                         spawn_particles(c.x, c.y, (255, 255, 100), 12)
-                        floating_texts.append(FloatingText(c.x, c.y, f"+{val}$", (255, 215, 0)))
+                        floating_texts.append(FloatingText(c.x, c.y, f"+{val}đ", (255, 215, 0)))
 
                 for d in self.dogs:
                     if d.alive and abs(bullet.x - d.x) < 18 and abs(bullet.y - d.y) < 18:
@@ -2115,7 +2115,7 @@ class Game:
                         self.register_kill(d.x, d.y, 150)
                         self.explosions.append(Explosion(d.x, d.y))
                         spawn_particles(d.x, d.y, (150, 100, 50), 15)
-                        floating_texts.append(FloatingText(d.x, d.y, "DOG KILLED!", (255, 150, 50)))
+                        floating_texts.append(FloatingText(d.x, d.y, "HẠ CHÓ!", (255, 150, 50)))
 
                 for enemy in self.enemies:
                     if enemy.alive and abs(bullet.x - enemy.x) < 12 and abs(bullet.y - enemy.y) < 12:
@@ -2128,7 +2128,7 @@ class Game:
                             elif enemy.tank_type == "boss":
                                 base_score = 1000
                                 self.stats["bosses_killed"] += 1
-                                trigger_achievement("BOSS SLAYER!", f"Ha guc Boss man {self.level}!", (255, 100, 50))
+                                trigger_achievement("HẠ BOSS!", f"Hạ gục Boss màn {self.level}!", (255, 100, 50))
                             self.register_kill(enemy.x, enemy.y, base_score)
                             self.explosions.append(Explosion(enemy.x, enemy.y, big=True))
                             spawn_particles(enemy.x, enemy.y, (255, 150, 50), 15)
@@ -2151,12 +2151,12 @@ class Game:
                 if item.kind == "money":
                     gain = random.randint(50, 150)
                     self.money += gain; self.total_money_earned += gain
-                    floating_texts.append(FloatingText(self.player.x, self.player.y, f"+{gain}$", (255, 215, 0)))
+                    floating_texts.append(FloatingText(self.player.x, self.player.y, f"+{gain}đ", (255, 215, 0)))
                 elif item.kind == "gem":
                     gain = random.randint(2, 5)
                     self.gems += gain
                     floating_texts.append(FloatingText(self.player.x,
-                        self.player.y, f"+{gain} GEM", (140, 220, 255)))
+                        self.player.y, f"+{gain} ĐÁ QUÝ", (140, 220, 255)))
                 else:
                     self.apply_item_ultra(item.kind)
                 self.items.remove(item)
@@ -2185,47 +2185,47 @@ class Game:
             if self.grid[ty][tx] == EMPTY: rx, ry = tx, ty; break
         self.player = Tank(rx, ry, "player")
         spawn_particles(ox, oy, (255, 50, 50), 20)
-        floating_texts.append(FloatingText(ox, oy, "RESPAWNED!", (255, 255, 255)))
+        floating_texts.append(FloatingText(ox, oy, "HỒI SINH!", (255, 255, 255)))
 
     def apply_item_ultra(self, kind):
         if kind == "health":
             self.player.hp = min(self.player.max_hp, self.player.hp + 1)
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "+1 HP", (80, 255, 80)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "+1 MÁU", (80, 255, 80)))
         elif kind == "life":
             self.lives += 1
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "1UP! EXTRA LIFE", (255, 50, 150)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "+1 MẠNG!", (255, 50, 150)))
         elif kind == "shield":
             self.player.shield += 3
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "SHIELD UP!", (80, 150, 255)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "GIÁP +!", (80, 150, 255)))
         elif kind == "speed":
             self.player.energy = self.player.max_energy
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "ENERGY REFILL", (80, 255, 130)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "NẠP NĂNG LƯỢNG", (80, 255, 130)))
         elif kind == "rapid":
             self.player.skill = "rapid"; self.player.skill_ammo = 40
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "RAPID FIRE!", (255, 100, 50)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "BẮN SIÊU TỐC!", (255, 100, 50)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "multi":
             self.player.skill = "ammo"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "MULTI-SHOT!", (255, 200, 50)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "BẮN ĐA HƯỚNG!", (255, 200, 50)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "pierce":
             self.player.skill = "pierce"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "PIERCE BULLETS", (80, 200, 255)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "ĐẠN XUYÊN PHÁ!", (80, 200, 255)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "bomb":
             self.player.skill = "bomb"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "BOMB BULLETS", (255, 100, 50)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "ĐẠN NỔ!", (255, 100, 50)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "laser":
             self.player.skill = "laser"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "LASER BEAM!", (0, 255, 180)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "TIA LASER!", (0, 255, 180)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "plasma":
             self.player.skill = "plasma"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "PLASMA SHOTS!", (200, 50, 255)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "ĐẠN PLASMA!", (200, 50, 255)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "star":
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "BOMBA!!!", (255, 50, 50), huge=True))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "BÙM BÙM!!!", (255, 50, 50), huge=True))
             for e in self.enemies:
                 if e.alive and e.spawn_timer <= 0:
                     killed = e.hit(10)
@@ -2243,7 +2243,7 @@ class Game:
             for d in self.dogs:
                 if d.alive:
                     d.frozen_timer = 300
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "FREEZE!", (120, 220, 255), huge=True))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "ĐÓNG BĂNG!", (120, 220, 255), huge=True))
             self.shake_amount = 6
         elif kind == "max_power":
             # Instantly upgrade tank to max tier
@@ -2255,7 +2255,7 @@ class Game:
             self.player.shoot_delay = 8
             self.player.skill = "pierce"
             self.player.skill_timer = 900
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "MAX POWER!", (255, 200, 60), huge=True))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "SỨC MẠNH TỐI ĐA!", (255, 200, 60), huge=True))
             self.shake_amount = 10
         elif kind == "grenade":
             # AOE explosion centered on player; damages enemies within radius
@@ -2286,7 +2286,7 @@ class Game:
                 ey = self.player.y + math.sin(ang) * rr
                 self.explosions.append(Explosion(int(ex), int(ey), big=True))
             spawn_particles(self.player.x, self.player.y, (255, 180, 60), 30)
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "GRENADE!", (90, 220, 90), huge=True))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "LỰU ĐẠN!", (90, 220, 90), huge=True))
             self.shake_amount = 18
             snd_explode.play()
 
@@ -2311,7 +2311,7 @@ class Game:
         draw_kawaii_panel(s, (12, 8, SW - 24, header_h), fill=(60, 45, 100),
                           border=(255, 200, 230), radius=18,
                           shadow_offset=4, glow=False)
-        draw_rainbow_text(s, "TANK SHOP", (SW // 2, 14), FONT_TITLE,
+        draw_rainbow_text(s, "CỬA HÀNG", (SW // 2, 14), FONT_TITLE,
                           tick=self.tick)
 
         # Currency + backpack pills under header
@@ -2321,7 +2321,7 @@ class Game:
         draw_kawaii_panel(s, (bp_panel_x, bp_panel_y, bp_w, bp_h),
                           fill=(70, 50, 110), border=(180, 230, 255),
                           radius=14, shadow_offset=2, glow=False)
-        bp_t = FONT_MED.render(f"BALO {len(self.backpack)}/3", True,
+        bp_t = FONT_MED.render(f"BA LÔ {len(self.backpack)}/3", True,
                                (255, 240, 220))
         s.blit(bp_t, (bp_panel_x + 16, bp_panel_y + 8))
         # Backpack item icons
@@ -2339,18 +2339,18 @@ class Game:
                     s.blit(icon, (slot_x + 2, slot_y + 2))
 
         items = [
-            ("1", "DAN DA HUONG", "Ban ra 3 tia cuc manh",     500,  "multi",   "gold"),
-            ("2", "BAN SIEU TOC", "Dan toc do cao lien tuc",   800,  "rapid",   "gold"),
-            ("3", "DAN XUYEN THAU", "Ban xuyen tuong & ke dich", 600, "pierce",  "gold"),
-            ("4", "GIAP THEP",    "Tang 3 diem giap bao ve",   300,  "shield",  "gold"),
-            ("5", "SUA CHUA XE",  "Hoi day mau ngay lap tuc",  200,  "health",  "gold"),
-            ("6", "THEM MANG",    "Tang 1 mang du phong",      1000, "life",    "gold"),
-            ("7", "BOM NUKE",     "Huy diet toan bo ke thu",   1000, "star",    "gold"),
-            ("8", "NANG LUONG",   "Hoi day nang luong nitro",  150,  "speed",   "gold"),
-            ("9", "TIA LASER",    "Ban tia laser sieu manh",   900,  "laser",   "gold"),
-            ("0", "DAN PLASMA",   "Dan plasma huy diet",       750,  "plasma",  "gold"),
-            ("-", "GEM PACK x10", "Doi vang lay 10 gem kawaii", 500,  "gem",     "gold"),
-            ("=", "GEM PACK x50", "Doi vang lay 50 gem (uu dai)", 2000, "gem",   "gold"),
+            ("1", "ĐẠN ĐA HƯỚNG", "Bắn ra 3 tia cực mạnh",     500,  "multi",   "gold"),
+            ("2", "BẮN SIÊU TỐC", "Đạn tốc độ cao liên tục",   800,  "rapid",   "gold"),
+            ("3", "ĐẠN XUYÊN THẤU", "Bắn xuyên tường & kẻ địch", 600, "pierce",  "gold"),
+            ("4", "GIÁP THÉP",    "Tăng 3 điểm giáp bảo vệ",   300,  "shield",  "gold"),
+            ("5", "SỬA CHỮA XE",  "Hồi đầy máu ngay lập tức",  200,  "health",  "gold"),
+            ("6", "THÊM MẠNG",    "Tăng 1 mạng dự phòng",      1000, "life",    "gold"),
+            ("7", "BOM NGUYÊN TỬ", "Huỷ diệt toàn bộ kẻ thù",   1000, "star",    "gold"),
+            ("8", "NĂNG LƯỢNG",   "Hồi đầy năng lượng nitro",  150,  "speed",   "gold"),
+            ("9", "TIA LASER",    "Bắn tia laser siêu mạnh",   900,  "laser",   "gold"),
+            ("0", "ĐẠN PLASMA",   "Đạn plasma huỷ diệt",       750,  "plasma",  "gold"),
+            ("-", "GÓI GEM x10",  "Đổi vàng lấy 10 gem kawaii", 500,  "gem",     "gold"),
+            ("=", "GÓI GEM x50",  "Đổi vàng lấy 50 gem (ưu đãi)", 2000, "gem",   "gold"),
         ]
 
         start_y = 90
@@ -2414,8 +2414,8 @@ class Game:
 
         # Continue button
         pulse = abs(math.sin(self.tick * 0.08))
-        msg = "[ ENTER ]  TIEP TUC " + (
-            "MAN TIEP THEO" if self.won_level else "CHOI LAI MAN")
+        msg = "[ ENTER ]  TIẾP TỤC " + (
+            "MÀN TIẾP THEO" if self.won_level else "CHƠI LẠI MÀN")
         instr = FONT_MED.render(msg, True,
                                 (int(200 + 55 * pulse), 255, int(200 + 55 * pulse)))
         bw, bh = instr.get_width() + 60, 44
@@ -2451,7 +2451,7 @@ class Game:
                 if self.money < cost:
                     snd_deny.play()
                     floating_texts.append(FloatingText(SW // 2, SH // 2,
-                        "KHONG DU VANG!", (255, 80, 80), center_bounce=True))
+                        "KHÔNG ĐỦ VÀNG!", (255, 80, 80), center_bounce=True))
                 elif kind in ("gem10", "gem50"):
                     gain = 10 if kind == "gem10" else 50
                     self.money -= cost
@@ -2459,19 +2459,19 @@ class Game:
                     self.stats["money_spent"] += cost
                     snd_buy.play()
                     floating_texts.append(FloatingText(SW // 2, SH // 2,
-                        f"+{gain} GEM!", (180, 220, 255),
+                        f"+{gain} ĐÁ QUÝ!", (180, 220, 255),
                         center_bounce=True))
                 elif len(self.backpack) >= 3:
                     snd_deny.play()
                     floating_texts.append(FloatingText(SW // 2, SH // 2,
-                        "BALO DAY!", (255, 80, 80), center_bounce=True))
+                        "BA LÔ ĐẦY!", (255, 80, 80), center_bounce=True))
                 else:
                     self.money -= cost
                     self.stats["money_spent"] += cost
                     snd_buy.play()
                     self.backpack.append(kind)
                     floating_texts.append(FloatingText(SW // 2, SH // 2,
-                        f"DA THEM {kind.upper()}!",
+                        f"ĐÃ THÊM {kind.upper()}!",
                         (100, 255, 100), center_bounce=True))
 
     # ═══════════════════════════════════
@@ -2675,7 +2675,7 @@ class Game:
                 surf.set_at((x, hud_y + dy), col)
 
         # ── LIVES with heart icons ──
-        lives_lbl = FONT_SM.render("LIVES", True, (255, 220, 240))
+        lives_lbl = FONT_SM.render("MẠNG", True, (255, 220, 240))
         surf.blit(lives_lbl, (12, hud_y + 6))
         for i in range(max(0, self.lives)):
             draw_heart_icon(surf, 12 + i * 26, hud_y + 24, 22, filled=True)
@@ -2683,38 +2683,50 @@ class Game:
         # ── SCORE ── (under lives)
         score_t = FONT_MED.render(f"{self.score:,}", True, (255, 240, 180))
         surf.blit(score_t, (140, hud_y + 28))
-        sc_lbl = FONT_SM.render("SCORE", True, (200, 200, 240))
+        sc_lbl = FONT_SM.render("ĐIỂM", True, (200, 200, 240))
         surf.blit(sc_lbl, (140, hud_y + 12))
 
         # Level badge
-        badge_x = SW // 2 - 50
+        badge_w = 200
+        badge_x = SW // 2 - badge_w // 2
         theme_colors = {
             "default": (50, 100, 150), "desert": (180, 140, 60), "snow": (100, 150, 200),
             "city": (80, 80, 100), "jungle": (40, 120, 60), "lava": (150, 50, 30),
             "kawaii_woodland": (230, 150, 200),
         }
         bc = theme_colors.get(self.map_theme, (50, 100, 150))
-        pygame.draw.rect(surf, bc, (badge_x, hud_y + 6, 100, 22), border_radius=11)
-        pygame.draw.rect(surf, (200, 220, 255), (badge_x, hud_y + 6, 100, 22), 1, border_radius=11)
-        lvl_t = FONT_SM.render(f"LEVEL {self.level} - {self.map_theme.upper()}", True, (255, 255, 255))
-        surf.blit(lvl_t, (badge_x + 50 - lvl_t.get_width() // 2, hud_y + 10))
+        pygame.draw.rect(surf, bc, (badge_x, hud_y + 6, badge_w, 22), border_radius=11)
+        pygame.draw.rect(surf, (200, 220, 255), (badge_x, hud_y + 6, badge_w, 22), 1, border_radius=11)
+        theme_short = {
+            "default": "CHIẾN TRƯỜNG",
+            "desert": "SA MẠC",
+            "snow": "BĂNG GIÁ",
+            "city": "THÀNH PHỐ",
+            "jungle": "RỪNG RẬM",
+            "lava": "NÚI LỬA",
+            "kawaii_woodland": "RỪNG KAWAII",
+        }.get(self.map_theme, self.map_theme.upper())
+        lvl_t = FONT_SM.render(f"MÀN {self.level} • {theme_short}", True, (255, 255, 255))
+        surf.blit(lvl_t, (badge_x + badge_w // 2 - lvl_t.get_width() // 2, hud_y + 10))
 
         # Enemies left
         left = max(0, self.total_enemies - self.kills)
-        e_t = FONT_SM.render(f"ENEMIES: {left}", True, (255, 100, 100))
+        e_t = FONT_SM.render(f"KẺ ĐỊCH: {left}", True, (255, 100, 100))
         surf.blit(e_t, (SW - 150, hud_y + 8))
         for i in range(min(left, 8)):
             mini = pygame.transform.scale(sprites.tanks["enemy_a"][2], (12, 12))
             surf.blit(mini, (SW - 150 + i * 14, hud_y + 28))
 
-        # Auto mode
+        # Auto mode (placed below the level badge so it never overlaps)
+        auto_x = badge_x
+        auto_y = hud_y + 30
         if self.auto_mode:
             pulse = abs(math.sin(self.tick * 0.2))
             c = (int(50 + 200 * pulse), 255, int(100 + 150 * pulse))
-            surf.blit(FONT_SM.render(f"AUTO: {self.auto_algo}", True, c), (badge_x + 110, hud_y + 10))
-            surf.blit(FONT_SM.render("[F]OFF [G]ALGO", True, (120, 140, 120)), (badge_x + 110, hud_y + 26))
+            surf.blit(FONT_SM.render(f"TỰ ĐỘNG: {self.auto_algo}", True, c), (auto_x, auto_y))
+            surf.blit(FONT_SM.render("[F]TẮT  [G]ĐỔI", True, (120, 140, 120)), (auto_x + 110, auto_y))
         else:
-            surf.blit(FONT_SM.render("[F]AUTO", True, (80, 100, 80)), (badge_x + 110, hud_y + 15))
+            surf.blit(FONT_SM.render("[F] TỰ ĐỘNG", True, (80, 100, 80)), (auto_x, auto_y))
 
         # Skill indicator
         if self.player and self.player.skill:
@@ -2723,7 +2735,7 @@ class Game:
             sc = skill_colors.get(self.player.skill, (200, 200, 200))
             skill_name = self.player.skill.upper()
             if self.player.skill == "ammo": skill_name = "MULTI"
-            st = FONT_SM.render(f"SKILL: {skill_name}", True, sc)
+            st = FONT_SM.render(f"KỸ NĂNG: {skill_name}", True, sc)
             surf.blit(st, (badge_x - 100, hud_y + 35))
             if self.player.skill_timer > 0:
                 bar_w = 60
@@ -2735,7 +2747,7 @@ class Game:
         if self.combo > 1:
             pulse = abs(math.sin(self.tick * 0.3))
             c = (255, int(150 + pulse * 100), 50)
-            combo_t = FONT_MED.render(f"x{self.combo} COMBO", True, c)
+            combo_t = FONT_MED.render(f"x{self.combo} CHUỖI", True, c)
             surf.blit(combo_t, (badge_x - 90, hud_y + 8))
             cw = 60
             cx = badge_x - 90
@@ -2750,18 +2762,19 @@ class Game:
         s.fill((0, 0, 0, 180))
 
         # Theme name
-        theme_names = {"default": "CHIEN TRUONG", "desert": "SA MAC", "snow": "BANG GIA",
-                      "city": "THANH PHO", "jungle": "RUNG RAM", "lava": "NUI LUA"}
-        theme_name = theme_names.get(self.map_theme, "CHIEN TRUONG")
+        theme_names = {"default": "CHIẾN TRƯỜNG", "desert": "SA MẠC", "snow": "BĂNG GIÁ",
+                      "city": "THÀNH PHỐ", "jungle": "RỪNG RẬM", "lava": "NÚI LỬA",
+                      "kawaii_woodland": "RỪNG KAWAII"}
+        theme_name = theme_names.get(self.map_theme, "CHIẾN TRƯỜNG")
 
         # Level number
-        lvl_t = FONT_HUGE.render(f"MAN {self.level}", True, (255, 220, 50))
-        shadow = FONT_HUGE.render(f"MAN {self.level}", True, (100, 80, 0))
+        lvl_t = FONT_HUGE.render(f"MÀN {self.level}", True, (255, 220, 50))
+        shadow = FONT_HUGE.render(f"MÀN {self.level}", True, (100, 80, 0))
         s.blit(shadow, (SW // 2 - lvl_t.get_width() // 2 + 3, SH // 2 - 100 + 3))
         s.blit(lvl_t, (SW // 2 - lvl_t.get_width() // 2, SH // 2 - 100))
 
         # Theme
-        theme_t = FONT_MED.render(f"DIA HINH: {theme_name}", True, (180, 200, 255))
+        theme_t = FONT_MED.render(f"ĐỊA HÌNH: {theme_name}", True, (180, 200, 255))
         s.blit(theme_t, (SW // 2 - theme_t.get_width() // 2, SH // 2 - 40))
 
         # Mission
@@ -2775,11 +2788,11 @@ class Game:
         if self.level % 5 == 0:
             pulse = abs(math.sin(self.tick * 0.15))
             warn_c = (255, int(50 + 200 * pulse), int(50 * pulse))
-            warn_t = FONT_BIG.render("!! BOSS XUAT HIEN !!", True, warn_c)
+            warn_t = FONT_BIG.render("!! BOSS XUẤT HIỆN !!", True, warn_c)
             s.blit(warn_t, (SW // 2 - warn_t.get_width() // 2, SH // 2 + 55))
 
         pulse = abs(math.sin(self.tick * 0.1))
-        instr = FONT_MED.render("NHAN [ SPACE ] DE BAT DAU", True, (int(150 + pulse * 105), int(180 + pulse * 75), 255))
+        instr = FONT_MED.render("NHẤN [ SPACE ] ĐỂ BẮT ĐẦU", True, (int(150 + pulse * 105), int(180 + pulse * 75), 255))
         s.blit(instr, (SW // 2 - instr.get_width() // 2, SH // 2 + 100))
 
         self._surf.blit(s, (0, 0))
@@ -2818,12 +2831,12 @@ class Game:
         # Title with kawaii rainbow gradient (below the side panels)
         draw_rainbow_text(s, "KAWAII TANK KINGDOM", (SW // 2, 100),
                           FONT_TITLE, tick=self.tick)
-        sub = FONT_SM.render(":  TANK DAI CHIEN  :", True, (255, 220, 240))
+        sub = FONT_SM.render(":  TANK ĐẠI CHIẾN  :", True, (255, 220, 240))
         s.blit(sub, (SW // 2 - sub.get_width() // 2, 158))
 
         # 5-tank preview row
         tank_types = ["player", "enemy_a", "enemy_b", "elite", "boss"]
-        labels = ["NEKO", "DICH", "FAST", "ELITE", "BOSS"]
+        labels = ["NEKO", "ĐỊCH", "NHANH", "TINH NHUỆ", "BOSS"]
         preview_y = 188
         for i, (tk, label) in enumerate(zip(tank_types, labels)):
             bx = SW // 2 - 235 + i * 95
@@ -2869,7 +2882,7 @@ class Game:
                                tick=self.tick, icon_fn=icons[i])
 
         # Help footer
-        hint = "  ↑/↓  chon  •  ENTER  vao  •  H  huong dan  •  F11  toggle fullscreen"
+        hint = "  ↑/↓  chọn  •  ENTER  vào  •  H  hướng dẫn  •  F11  toàn màn hình"
         ht = FONT_SM.render(hint, True, (255, 220, 240))
         s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
 
@@ -2901,8 +2914,8 @@ class Game:
                                  int(70 + 40 * t)), (0, y), (SW, y))
         draw_pastel_starfield(s, self.tick, density=60)
         # Title
-        draw_rainbow_text(s, "GARAGE", (SW // 2, 30), FONT_TITLE, tick=self.tick)
-        sub = FONT_SM.render("Chon mau tank cua ban", True, (255, 220, 240))
+        draw_rainbow_text(s, "GA-RA", (SW // 2, 30), FONT_TITLE, tick=self.tick)
+        sub = FONT_SM.render("Chọn mẫu tank của bạn", True, (255, 220, 240))
         s.blit(sub, (SW // 2 - sub.get_width() // 2, 90))
 
         # Currency panel
@@ -2922,10 +2935,10 @@ class Game:
         s.blit(big, (center_x - 90, center_y - 110))
         # Stats per tier
         stats_list = [
-            ("HP", 4 + self.skin_idx),
-            ("FIRE RATE", 5 + self.skin_idx),
-            ("BULLET PWR", 1 + self.skin_idx // 2),
-            ("ARMOR", self.skin_idx),
+            ("MÁU", 4 + self.skin_idx),
+            ("TỐC ĐỘ BẮN", 5 + self.skin_idx),
+            ("SỨC MẠNH ĐẠN", 1 + self.skin_idx // 2),
+            ("GIÁP", self.skin_idx),
         ]
         for i, (lbl, val) in enumerate(stats_list):
             yy = center_y + 60 + i * 18
@@ -2942,11 +2955,11 @@ class Game:
         nt = FONT_BIG.render(name, True, (255, 240, 200))
         s.blit(nt, (center_x - nt.get_width() // 2, center_y + 130))
         if self.skin_idx in self.unlocked_skins:
-            stat = FONT_MED.render("UNLOCKED", True, (130, 240, 160))
+            stat = FONT_MED.render("ĐÃ MỞ KHÓA", True, (130, 240, 160))
             s.blit(stat, (center_x - stat.get_width() // 2, center_y + 165))
         else:
             cost = (self.skin_idx + 1) * 200
-            stat = FONT_MED.render(f"COST: {cost} GEMS", True, (200, 220, 255))
+            stat = FONT_MED.render(f"GIÁ: {cost} ĐÁ QUÝ", True, (200, 220, 255))
             s.blit(stat, (center_x - stat.get_width() // 2, center_y + 165))
 
         # Left/right arrows
@@ -2961,7 +2974,7 @@ class Game:
             s.blit(ar, (ax - ar.get_width() // 2, ay - ar.get_height() // 2))
 
         # Bottom hint bar
-        hint = "←/→ doi tank   ENTER mua bang gem   ESC quay lai"
+        hint = "←/→ đổi tank   ENTER mua bằng gem   ESC quay lại"
         ht = FONT_SM.render(hint, True, (255, 230, 240))
         s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
 
@@ -2973,11 +2986,11 @@ class Game:
                                  int(70 + 35 * t)), (0, y), (SW, y))
         draw_pastel_starfield(s, self.tick, density=50)
 
-        draw_rainbow_text(s, "ACHIEVEMENTS", (SW // 2, 30), FONT_TITLE,
+        draw_rainbow_text(s, "THÀNH TỰU", (SW // 2, 30), FONT_TITLE,
                           tick=self.tick)
         unlocked_count = len(self.achievements_unlocked)
         total = len(self.achievement_defs)
-        sub = FONT_MED.render(f"{unlocked_count}/{total} dat duoc",
+        sub = FONT_MED.render(f"{unlocked_count}/{total} đã đạt",
                               True, (255, 240, 200))
         s.blit(sub, (SW // 2 - sub.get_width() // 2, 95))
 
@@ -2988,7 +3001,7 @@ class Game:
         total_w = cols * card_w + (cols - 1) * gap_x
         start_x = SW // 2 - total_w // 2
         start_y = 140
-        for i, (key, label) in enumerate(self.achievement_defs):
+        for i, (key, name_vi, label) in enumerate(self.achievement_defs):
             row = i // cols
             col = i % cols
             x = start_x + col * (card_w + gap_x)
@@ -3015,7 +3028,7 @@ class Game:
                                  (ic_x + 4, ic_y - 18, 20, 16), 2,
                                  border_radius=8)
             # Text
-            nt = FONT_MED.render(key.replace("_", " ").title(), True,
+            nt = FONT_MED.render(name_vi, True,
                                  (255, 240, 220) if unlocked else (170, 160, 190))
             s.blit(nt, (x + 60, y + 14))
             dt = FONT_SM.render(label, True,
@@ -3023,7 +3036,7 @@ class Game:
             s.blit(dt, (x + 60, y + 40))
 
         # Hint
-        hint = "ENTER hoac ESC quay lai"
+        hint = "ENTER hoặc ESC quay lại"
         ht = FONT_SM.render(hint, True, (255, 230, 240))
         s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
 
@@ -3051,7 +3064,7 @@ class Game:
         avatar = pygame.transform.scale(sprites.player_tiers[tier][0], (50, 50))
         surf.blit(avatar, (x + 8, y + 10))
         # Name
-        nm = FONT_MED.render("PLAYER", True, (255, 240, 220))
+        nm = FONT_MED.render("NGƯỜI CHƠI", True, (255, 240, 220))
         surf.blit(nm, (x + 70, y + 8))
         nick = FONT_SM.render(self.player_name, True, (180, 220, 255))
         surf.blit(nick, (x + 70, y + 35))
@@ -3063,49 +3076,49 @@ class Game:
             pygame.draw.line(s, (int(10 + 15 * t), int(12 + 18 * t), int(25 + 35 * t)), (0, y), (SW, y))
 
         # Header
-        title = FONT_TITLE.render("HUONG DAN CHOI", True, (255, 220, 50))
+        title = FONT_TITLE.render("HƯỚNG DẪN CHƠI", True, (255, 220, 50))
         s.blit(title, (SW // 2 - title.get_width() // 2, 15))
         pygame.draw.line(s, (255, 220, 50), (50, 65), (SW - 50, 65), 2)
 
         pages = [
             {
-                "title": "DIEU KHIEN CO BAN",
+                "title": "ĐIỀU KHIỂN CƠ BẢN",
                 "items": [
-                    ("W A S D / Phim Mui Ten", "Di chuyen xe tang 4 huong"),
-                    ("SPACE", "Ban dan - giu de ban lien tuc"),
-                    ("SHIFT + Di chuyen", "Chay nhanh (ton nang luong)"),
-                    ("ESC", "Tam dung / Menu"),
-                    ("Phim 1, 2, 3", "Su dung vat pham trong balo"),
+                    ("W A S D / Phím Mũi Tên", "Di chuyển xe tăng 4 hướng"),
+                    ("SPACE", "Bắn đạn - giữ để bắn liên tục"),
+                    ("SHIFT + Di chuyển", "Chạy nhanh (tốn năng lượng)"),
+                    ("ESC", "Tạm dừng / Menu"),
+                    ("Phím 1, 2, 3", "Sử dụng vật phẩm trong ba lô"),
                 ]
             },
             {
-                "title": "CHE DO TU DONG (AUTO)",
+                "title": "CHẾ ĐỘ TỰ ĐỘNG (AUTO)",
                 "items": [
-                    ("Phim F", "Bat/Tat che do tu dong (co buff)"),
-                    ("Phim G", "Doi thuat toan: A*, BFS, DFS"),
-                    ("A* (Mac dinh)", "Tim duong ngan nhat, co pha tuong"),
-                    ("BFS", "Tim duong rong, chi di duong trong"),
-                    ("DFS", "Tim duong sau, ngau nhien hon"),
+                    ("Phím F", "Bật/Tắt chế độ tự động (có buff)"),
+                    ("Phím G", "Đổi thuật toán: A*, BFS, DFS"),
+                    ("A* (Mặc định)", "Tìm đường ngắn nhất, có phá tường"),
+                    ("BFS", "Tìm đường rộng, chỉ đi đường trống"),
+                    ("DFS", "Tìm đường sâu, ngẫu nhiên hơn"),
                 ]
             },
             {
-                "title": "VAT PHAM & CUA HANG",
+                "title": "VẬT PHẨM & CỬA HÀNG",
                 "items": [
-                    ("Mau (Health)", "Hoi 1 diem mau"),
-                    ("Giap (Shield)", "Chan 3 phat dan"),
-                    ("Nang luong", "Hoi day thanh chay nhanh"),
-                    ("Nuke (Star)", "Tieu diet toan bo ke dich"),
-                    ("Balo chua toi da 3 vat pham", "Mua trong shop, dung bang phim 1-3"),
+                    ("Máu (Health)", "Hồi 1 điểm máu"),
+                    ("Giáp (Shield)", "Chặn 3 phát đạn"),
+                    ("Năng lượng", "Hồi đầy thanh chạy nhanh"),
+                    ("Bom Nguyên Tử (Star)", "Tiêu diệt toàn bộ kẻ địch"),
+                    ("Ba lô chứa tối đa 3 vật phẩm", "Mua trong shop, dùng bằng phím 1-3"),
                 ]
             },
             {
-                "title": "MAP & BOSS",
+                "title": "BẢN ĐỒ & BOSS",
                 "items": [
-                    ("6 dia hinh", "Chien truong, Sa mac, Bang gia, Thanh pho, Rung, Nui lua"),
-                    ("Moi 5 man", "Boss xuat hien - rat manh!"),
-                    ("Ga", "Ban de lay tien"),
-                    ("Cho", "Duoi can nguoi choi - nguy hiem!"),
-                    ("Can cu", "Bao ve can cu o phia duoi ban do"),
+                    ("7 địa hình", "Rừng Kawaii, Chiến trường, Sa mạc, Băng, Thành phố, Rừng, Núi lửa"),
+                    ("Mỗi 5 màn", "Boss xuất hiện - rất mạnh!"),
+                    ("Gà", "Bắn để lấy tiền"),
+                    ("Chó", "Đuổi cắn người chơi - nguy hiểm!"),
+                    ("Căn cứ", "Bảo vệ căn cứ ở phía dưới bản đồ"),
                 ]
             }
         ]
@@ -3139,7 +3152,7 @@ class Game:
         s.blit(page_t, (SW // 2 - page_t.get_width() // 2, SH - 70))
 
         # Navigation
-        nav_t = FONT_SM.render("[ <- ] Truoc    [ -> ] Tiep    [ ESC/ENTER ] Quay lai", True, (120, 140, 180))
+        nav_t = FONT_SM.render("[ ← ] Trước    [ → ] Tiếp    [ ESC/ENTER ] Quay lại", True, (120, 140, 180))
         s.blit(nav_t, (SW // 2 - nav_t.get_width() // 2, SH - 40))
 
         # Page dots
@@ -3161,25 +3174,25 @@ class Game:
             pygame.draw.rect(vig, (80, 0, 0, 20 - i * 5), (i * 10, i * 10, SW - i * 20, SH - i * 20), i * 5 + 5)
             s.blit(vig, (0, 0))
 
-        text = FONT_HUGE.render("GAME OVER", True, (255, 50, 50))
-        shadow = FONT_HUGE.render("GAME OVER", True, (80, 0, 0))
+        text = FONT_HUGE.render("KẾT THÚC", True, (255, 50, 50))
+        shadow = FONT_HUGE.render("KẾT THÚC", True, (80, 0, 0))
         s.blit(shadow, (SW // 2 - text.get_width() // 2 + 3, SH // 2 - 78))
         s.blit(text, (SW // 2 - text.get_width() // 2, SH // 2 - 80))
 
-        score_t = FONT_MED.render(f"DIEM SO: {self.score}", True, (255, 215, 80))
+        score_t = FONT_MED.render(f"ĐIỂM SỐ: {self.score}", True, (255, 215, 80))
         s.blit(score_t, (SW // 2 - score_t.get_width() // 2, SH // 2 - 10))
 
         stats_lines = [
-            f"Xe tang tieu diet: {self.total_kills}",
-            f"Man dat duoc: {self.level}",
-            f"Combo cao nhat: {self.stats['max_combo']}",
+            f"Xe tăng tiêu diệt: {self.total_kills}",
+            f"Màn đạt được: {self.level}",
+            f"Chuỗi cao nhất: {self.stats['max_combo']}",
         ]
         for i, line in enumerate(stats_lines):
             lt = FONT_SM.render(line, True, (180, 185, 200))
             s.blit(lt, (SW // 2 - lt.get_width() // 2, SH // 2 + 20 + i * 22))
 
         pulse = abs(math.sin(self.tick * 0.05))
-        restart_t = FONT_MED.render("[ ENTER ] DE TIEP TUC", True, (int(180 + 75 * pulse), int(180 + 75 * pulse), 255))
+        restart_t = FONT_MED.render("[ ENTER ] ĐỂ TIẾP TỤC", True, (int(180 + 75 * pulse), int(180 + 75 * pulse), 255))
         s.blit(restart_t, (SW // 2 - restart_t.get_width() // 2, SH // 2 + 100))
 
     def draw_level_clear(self):
@@ -3198,29 +3211,30 @@ class Game:
             pygame.draw.circle(ps, (*c, max(0, a)), (4, 4), 3)
             s.blit(ps, (int(x), int(y)))
 
-        text = FONT_TITLE.render(f"MAN {self.level} HOAN THANH!", True, (80, 255, 130))
-        shadow = FONT_TITLE.render(f"MAN {self.level} HOAN THANH!", True, (0, 60, 20))
+        text = FONT_TITLE.render(f"MÀN {self.level} HOÀN THÀNH!", True, (80, 255, 130))
+        shadow = FONT_TITLE.render(f"MÀN {self.level} HOÀN THÀNH!", True, (0, 60, 20))
         s.blit(shadow, (SW // 2 - text.get_width() // 2 + 2, SH // 2 - 78))
         s.blit(text, (SW // 2 - text.get_width() // 2, SH // 2 - 80))
 
-        score_t = FONT_MED.render(f"DIEM: {self.score}", True, (255, 215, 80))
+        score_t = FONT_MED.render(f"ĐIỂM: {self.score}", True, (255, 215, 80))
         s.blit(score_t, (SW // 2 - score_t.get_width() // 2, SH // 2 - 20))
 
-        kills_t = FONT_SM.render(f"TIEU DIET: {self.kills} / {self.total_enemies}", True, (200, 220, 200))
+        kills_t = FONT_SM.render(f"TIÊU DIỆT: {self.kills} / {self.total_enemies}", True, (200, 220, 200))
         s.blit(kills_t, (SW // 2 - kills_t.get_width() // 2, SH // 2 + 10))
 
-        money_t = FONT_SM.render(f"TIEN: ${self.money}", True, (100, 255, 120))
+        money_t = FONT_SM.render(f"TIỀN: {self.money}đ", True, (100, 255, 120))
         s.blit(money_t, (SW // 2 - money_t.get_width() // 2, SH // 2 + 35))
 
         # Next level preview
         next_theme = self.get_theme_for_level(self.level + 1)
-        theme_names = {"default": "CHIEN TRUONG", "desert": "SA MAC", "snow": "BANG GIA",
-                      "city": "THANH PHO", "jungle": "RUNG RAM", "lava": "NUI LUA"}
-        next_t = FONT_SM.render(f"Man tiep theo: {theme_names.get(next_theme, '???')}", True, (160, 180, 220))
+        theme_names = {"default": "CHIẾN TRƯỜNG", "desert": "SA MẠC", "snow": "BĂNG GIÁ",
+                      "city": "THÀNH PHỐ", "jungle": "RỪNG RẬM", "lava": "NÚI LỬA",
+                      "kawaii_woodland": "RỪNG KAWAII"}
+        next_t = FONT_SM.render(f"Màn tiếp theo: {theme_names.get(next_theme, '???')}", True, (160, 180, 220))
         s.blit(next_t, (SW // 2 - next_t.get_width() // 2, SH // 2 + 60))
 
         pulse = abs(math.sin(self.tick * 0.06))
-        next_btn = FONT_MED.render("[ ENTER ] TIEP TUC", True, (int(180 + 75 * pulse), 255, int(180 + 75 * pulse)))
+        next_btn = FONT_MED.render("[ ENTER ] TIẾP TỤC", True, (int(180 + 75 * pulse), 255, int(180 + 75 * pulse)))
         s.blit(next_btn, (SW // 2 - next_btn.get_width() // 2, SH // 2 + 95))
 
     def draw_pause(self):
@@ -3230,7 +3244,7 @@ class Game:
         overlay.fill((0, 0, 0, 180))
         s.blit(overlay, (0, 0))
 
-        title = FONT_TITLE.render("TAM DUNG", True, (255, 255, 255))
+        title = FONT_TITLE.render("TẠM DỪNG", True, (255, 255, 255))
         s.blit(title, (SW // 2 - title.get_width() // 2, SH // 4 - 20))
 
         for i, item in enumerate(self.pause_items):
@@ -3252,7 +3266,7 @@ class Game:
             rect = txt.get_rect(center=(SW // 2, SH // 2 - 60 + i * 45))
             s.blit(txt, rect)
 
-        instr = FONT_SM.render("[ MUI TEN ] CHON  -  [ ENTER ] DONG Y", True, (100, 110, 130))
+        instr = FONT_SM.render("[ MŨI TÊN ] CHỌN  -  [ ENTER ] ĐỒNG Ý", True, (100, 110, 130))
         s.blit(instr, (SW // 2 - instr.get_width() // 2, SH - 80))
 
     def draw_backpack_ui(self, surf):
@@ -3262,7 +3276,7 @@ class Game:
         by = 10
 
         # Backpack label
-        bp_t = FONT_SM.render("BALO", True, (120, 130, 160))
+        bp_t = FONT_SM.render("BA LÔ", True, (120, 130, 160))
         surf.blit(bp_t, (bx, by - 2))
 
         for i in range(3):
