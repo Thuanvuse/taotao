@@ -34,7 +34,12 @@ EMPTY = 0; BRICK = 1; STEEL = 2; GRASS = 3; WATER = 4; CRATE = 5; BASE = 6
 MAP_THEMES = ["default", "desert", "snow", "city", "jungle", "lava"]
 
 pygame.init()
-pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+SOUND_ENABLED = True
+try:
+    pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+except Exception:
+    SOUND_ENABLED = False
+    print("Audio device not available - running without sound")
 screen = pygame.display.set_mode((SW, SH), pygame.FULLSCREEN | pygame.SCALED)
 pygame.display.set_caption("TANK DAI CHIEN - ULTIMATE")
 clock = pygame.time.Clock()
@@ -57,7 +62,12 @@ sprites = SpriteCache()
 # ═══════════════════════════════════════
 #  SOUND FX
 # ═══════════════════════════════════════
+class DummySound:
+    def play(self): pass
+    def stop(self): pass
+
 def gen_sound(freq, dur=0.08, vol=0.3, wave="sine"):
+    if not SOUND_ENABLED: return DummySound()
     sr = 44100; n = int(sr * dur); t = np.linspace(0, dur, n, False)
     if wave == "sine": w = np.sin(freq * t * 2 * np.pi)
     elif wave == "noise": w = np.random.uniform(-1, 1, n)
@@ -89,11 +99,12 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-try:
-    pygame.mixer.music.load(resource_path("nhacnen.mp3"))
-    pygame.mixer.music.set_volume(0.6)
-except Exception as e:
-    print(f"Music load error: {e}")
+if SOUND_ENABLED:
+    try:
+        pygame.mixer.music.load(resource_path("nhacnen.mp3"))
+        pygame.mixer.music.set_volume(0.6)
+    except Exception as e:
+        print(f"Music load error: {e}")
 
 # ═══════════════════════════════════════
 #  SCREEN TRANSITION
@@ -1131,7 +1142,7 @@ class FloatingText:
 class Game:
     def __init__(self):
         self.state = "title"
-        try: pygame.mixer.music.play(-1)
+        try: pygame.mixer.music.play(-1) if SOUND_ENABLED else None
         except: pass
         self.level = 1
         self.score = 0
@@ -1480,7 +1491,7 @@ class Game:
                         self.total_kills = 0; self.total_money_earned = 0
                         self.start_level(1)
                         self.state = "level_start"
-                        pygame.mixer.music.stop()
+                        pygame.mixer.music.stop() if SOUND_ENABLED else None
                     transition.start(start)
                 elif ev.key == pygame.K_h:
                     self.state = "tutorial"
@@ -1545,17 +1556,17 @@ class Game:
                     if sel == "TIEP TUC": self.state = "playing"
                     elif sel == "CHOI LAI":
                         self.start_level(self.level)
-                        pygame.mixer.music.stop()
+                        pygame.mixer.music.stop() if SOUND_ENABLED else None
                     elif sel == "VAO SHOP":
                         self.state = "shop"
-                        try: pygame.mixer.music.play(-1)
+                        try: pygame.mixer.music.play(-1) if SOUND_ENABLED else None
                         except: pass
                     elif sel == "CACH CHOI":
                         self.state = "tutorial"
                         self.tutorial_page = 0
                     elif sel == "VE SANH":
                         self.state = "title"
-                        try: pygame.mixer.music.play(-1)
+                        try: pygame.mixer.music.play(-1) if SOUND_ENABLED else None
                         except: pass
                     elif sel == "THOAT GAME":
                         pygame.quit(); sys.exit()
@@ -1564,7 +1575,7 @@ class Game:
                 if ev.key == pygame.K_RETURN:
                     def go_shop():
                         self.state = "shop"
-                        try: pygame.mixer.music.play(-1)
+                        try: pygame.mixer.music.play(-1) if SOUND_ENABLED else None
                         except: pass
                     transition.start(go_shop)
 
@@ -1971,7 +1982,7 @@ class Game:
                     target_lvl = self.level + 1 if self.won_level else self.level
                     self.start_level(target_lvl)
                     self.state = "level_start"
-                    pygame.mixer.music.stop()
+                    pygame.mixer.music.stop() if SOUND_ENABLED else None
                 transition.start(start_next)
 
             prices = {"1": 500, "2": 800, "3": 600, "4": 300, "5": 200,
