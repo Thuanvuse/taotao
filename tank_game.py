@@ -66,6 +66,234 @@ except Exception:
 sprites = SpriteCache()
 
 # ═══════════════════════════════════════
+#  KAWAII UI PRIMITIVES
+# ═══════════════════════════════════════
+KAWAII_PALETTE = {
+    "pink":     (255, 170, 210),
+    "rose":     (255, 130, 170),
+    "mint":     (130, 230, 200),
+    "sky":      (140, 200, 255),
+    "lavender": (200, 170, 255),
+    "peach":    (255, 200, 140),
+    "lemon":    (255, 240, 130),
+    "cream":    (255, 245, 220),
+    "ink":      (60, 50, 90),
+    "shadow":   (35, 30, 60),
+}
+
+KAWAII_RAINBOW = [(255, 130, 170), (255, 200, 140), (255, 240, 130),
+                  (130, 230, 200), (140, 200, 255), (200, 170, 255)]
+
+
+def draw_kawaii_panel(surf, rect, fill=(60, 50, 95), border=(255, 200, 230),
+                      radius=18, shadow_offset=4, glow=True):
+    """Rounded gradient panel with soft drop shadow + optional pastel glow.
+
+    Glow is rendered as an outer halo only (a slightly larger rounded rect
+    behind the panel) so it never washes out the panel fill itself.
+    """
+    x, y, w, h = rect
+    # Outer glow (drawn first, behind the panel + shadow)
+    if glow:
+        gpad = 14
+        glow_surf = pygame.Surface((w + gpad * 2, h + gpad * 2), pygame.SRCALPHA)
+        for i in range(4):
+            a = 30 - i * 6
+            if a <= 0:
+                break
+            pygame.draw.rect(glow_surf, (*border[:3], a),
+                             (i, i, w + gpad * 2 - i * 2, h + gpad * 2 - i * 2),
+                             border_radius=radius + gpad)
+        surf.blit(glow_surf, (x - gpad, y - gpad))
+    # Drop shadow
+    if shadow_offset:
+        sh = pygame.Surface((w + shadow_offset * 2, h + shadow_offset * 2), pygame.SRCALPHA)
+        pygame.draw.rect(sh, (0, 0, 0, 130),
+                         (shadow_offset, shadow_offset, w, h), border_radius=radius)
+        surf.blit(sh, (x - shadow_offset, y - shadow_offset))
+    # Panel body (vertical gradient from `fill` to a slightly darker shade)
+    panel = pygame.Surface((w, h), pygame.SRCALPHA)
+    for i in range(h):
+        t = i / max(1, h - 1)
+        col = (int(fill[0] * (1 - t * 0.35)),
+               int(fill[1] * (1 - t * 0.35)),
+               int(fill[2] * (1 - t * 0.25)))
+        pygame.draw.line(panel, col, (0, i), (w, i))
+    mask = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.rect(mask, (255, 255, 255, 255), (0, 0, w, h), border_radius=radius)
+    panel.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    surf.blit(panel, (x, y))
+    pygame.draw.rect(surf, border, rect, 2, border_radius=radius)
+
+
+def draw_kawaii_button(surf, rect, label, font, selected=False,
+                       color_idx=0, tick=0, icon_fn=None):
+    """Cute rounded button with pastel rainbow palette."""
+    base_colors = [
+        ((255, 170, 210), (255, 100, 160)),  # pink
+        ((255, 220, 140), (255, 170, 60)),   # peach/orange
+        ((180, 230, 255), (110, 180, 240)),  # sky
+        ((200, 255, 200), (110, 220, 130)),  # mint
+        ((220, 200, 255), (170, 130, 240)),  # lavender
+    ]
+    light, dark = base_colors[color_idx % len(base_colors)]
+    x, y, w, h = rect
+    pulse = (math.sin(tick * 0.08) + 1) * 0.5 if selected else 0
+    # Shadow
+    shadow = pygame.Surface((w + 6, h + 6), pygame.SRCALPHA)
+    pygame.draw.rect(shadow, (0, 0, 0, 130), (3, 3, w, h), border_radius=h // 2)
+    surf.blit(shadow, (x - 3, y - 3))
+    # Body gradient
+    body = pygame.Surface((w, h), pygame.SRCALPHA)
+    for i in range(h):
+        t = i / max(1, h - 1)
+        col = (int(light[0] * (1 - t * 0.4) + dark[0] * t * 0.4),
+               int(light[1] * (1 - t * 0.4) + dark[1] * t * 0.4),
+               int(light[2] * (1 - t * 0.4) + dark[2] * t * 0.4))
+        pygame.draw.line(body, col, (0, i), (w, i))
+    mask = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.rect(mask, (255, 255, 255, 255), (0, 0, w, h), border_radius=h // 2)
+    body.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    # Top gloss highlight
+    gloss = pygame.Surface((w, h // 2), pygame.SRCALPHA)
+    for i in range(h // 2):
+        a = int(160 * (1 - i / max(1, h // 2)))
+        pygame.draw.line(gloss, (255, 255, 255, a), (0, i), (w, i))
+    g_mask = pygame.Surface((w, h // 2), pygame.SRCALPHA)
+    pygame.draw.rect(g_mask, (255, 255, 255, 255), (0, 0, w, h // 2),
+                     border_radius=h // 2)
+    gloss.blit(g_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    body.blit(gloss, (0, 2))
+    surf.blit(body, (x, y))
+    # Border
+    border_col = (255, 255, 255) if selected else (90, 70, 110)
+    pygame.draw.rect(surf, border_col, rect, 3, border_radius=h // 2)
+    if selected:
+        glow = pygame.Surface((w + 30, h + 30), pygame.SRCALPHA)
+        pygame.draw.rect(glow, (255, 240, 200, int(60 + 80 * pulse)),
+                         (0, 0, w + 30, h + 30), border_radius=h // 2 + 10)
+        surf.blit(glow, (x - 15, y - 15), special_flags=pygame.BLEND_RGBA_ADD)
+    # Icon (optional, drawn left)
+    label_x = x + w // 2
+    if icon_fn:
+        icon_size = h - 14
+        icon_fn(surf, x + 14, y + (h - icon_size) // 2, icon_size)
+        label_x = x + w // 2 + 8
+    # Label
+    label_shadow = font.render(label, True, (40, 30, 60))
+    label_surf = font.render(label, True, (255, 255, 255))
+    surf.blit(label_shadow, (label_x - label_surf.get_width() // 2 + 2,
+                             y + (h - label_surf.get_height()) // 2 + 2))
+    surf.blit(label_surf, (label_x - label_surf.get_width() // 2,
+                           y + (h - label_surf.get_height()) // 2))
+
+
+def draw_rainbow_text(surf, text, pos, font, tick=0, jitter=True):
+    """Render text with each character in a different pastel rainbow color
+    and a small wave animation."""
+    cx = pos[0]
+    base_y = pos[1]
+    total_w = sum(font.size(c)[0] for c in text)
+    cx -= total_w // 2
+    for i, ch in enumerate(text):
+        col = KAWAII_RAINBOW[(i + tick // 6) % len(KAWAII_RAINBOW)]
+        offset_y = int(math.sin(tick * 0.12 + i * 0.6) * 4) if jitter else 0
+        # Outline
+        outline = font.render(ch, True, (40, 30, 60))
+        for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, 1), (-1, 1), (1, -1)]:
+            surf.blit(outline, (cx + dx, base_y + offset_y + dy))
+        glyph = font.render(ch, True, col)
+        surf.blit(glyph, (cx, base_y + offset_y))
+        cx += font.size(ch)[0]
+
+
+def draw_heart_icon(surf, x, y, size, filled=True, outline=(180, 30, 80)):
+    """Cute pixel heart at (x, y) with given size."""
+    s = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx, cy = size // 2, size // 2
+    fill = (255, 100, 130) if filled else (90, 70, 80)
+    # Two circles + triangle
+    r = size // 4
+    pygame.draw.circle(s, fill, (cx - r, cy - r // 2), r + 1)
+    pygame.draw.circle(s, fill, (cx + r, cy - r // 2), r + 1)
+    pts = [(cx - 2 * r, cy - r // 4), (cx + 2 * r, cy - r // 4),
+           (cx, cy + size // 2 - 1)]
+    pygame.draw.polygon(s, fill, pts)
+    pygame.draw.circle(s, outline, (cx - r, cy - r // 2), r + 1, 2)
+    pygame.draw.circle(s, outline, (cx + r, cy - r // 2), r + 1, 2)
+    pygame.draw.lines(s, outline, False,
+                      [(cx - 2 * r, cy - r // 4), (cx, cy + size // 2 - 1),
+                       (cx + 2 * r, cy - r // 4)], 2)
+    # Specular highlight
+    pygame.draw.circle(s, (255, 230, 240), (cx - r, cy - r), max(1, r // 3))
+    surf.blit(s, (x, y))
+
+
+def draw_coin_icon(surf, x, y, size):
+    """Gold coin with star, rotates slightly with time."""
+    s = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx, cy = size // 2, size // 2
+    pygame.draw.circle(s, (255, 200, 60), (cx, cy), size // 2 - 1)
+    pygame.draw.circle(s, (200, 130, 30), (cx, cy), size // 2 - 1, 2)
+    pygame.draw.circle(s, (255, 240, 160),
+                       (cx - size // 6, cy - size // 6), max(1, size // 8))
+    star = "*"
+    f = pygame.font.SysFont("consolas", max(8, size - 6), bold=True)
+    g = f.render(star, True, (180, 100, 30))
+    s.blit(g, (cx - g.get_width() // 2, cy - g.get_height() // 2 - 1))
+    surf.blit(s, (x, y))
+
+
+def draw_gem_icon(surf, x, y, size):
+    """Cyan diamond / gem icon."""
+    s = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx = size // 2
+    top = 1
+    mid_y = size // 3
+    bot = size - 2
+    pts = [(cx, top), (size - 2, mid_y), (cx, bot), (1, mid_y)]
+    pygame.draw.polygon(s, (140, 220, 255), pts)
+    pygame.draw.polygon(s, (60, 140, 200), pts, 2)
+    # Inner facets
+    pygame.draw.line(s, (220, 245, 255), (cx, top), (cx, bot), 1)
+    pygame.draw.line(s, (220, 245, 255), (cx, top), (1, mid_y), 1)
+    pygame.draw.polygon(s, (255, 255, 255),
+                        [(cx, top + 1), (cx + 3, mid_y - 2), (cx - 1, mid_y - 1)])
+    surf.blit(s, (x, y))
+
+
+def draw_sparkle(surf, x, y, size, color=(255, 255, 200), alpha=255):
+    """4-point sparkle / star burst."""
+    s = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
+    cx = size
+    pygame.draw.line(s, (*color, alpha), (cx, 0), (cx, size * 2 - 1), 2)
+    pygame.draw.line(s, (*color, alpha), (0, cx), (size * 2 - 1, cx), 2)
+    pygame.draw.line(s, (*color, alpha // 2),
+                     (size // 2, size // 2), (size + size // 2, size + size // 2), 1)
+    pygame.draw.line(s, (*color, alpha // 2),
+                     (size + size // 2, size // 2), (size // 2, size + size // 2), 1)
+    pygame.draw.circle(s, (255, 255, 255, alpha), (cx, cx), 2)
+    surf.blit(s, (x - cx, y - cx))
+
+
+def draw_pastel_starfield(surf, tick, density=70):
+    """Animated background of soft pastel sparkles + drifting stars."""
+    for i in range(density):
+        x = (i * 71 + tick * 0.4) % SW
+        y = (i * 53 + tick * 0.18) % SH
+        col = KAWAII_RAINBOW[i % len(KAWAII_RAINBOW)]
+        pulse = abs(math.sin(tick * 0.04 + i * 0.7))
+        a = int(60 + pulse * 140)
+        sz = 1 + (i % 3)
+        ps = pygame.Surface((sz * 2 + 4, sz * 2 + 4), pygame.SRCALPHA)
+        pygame.draw.circle(ps, (*col, a), (sz + 2, sz + 2), sz)
+        surf.blit(ps, (int(x), int(y)))
+        if i % 9 == 0:
+            draw_sparkle(surf, int(x), int(y), 6,
+                         color=(255, 255, 220), alpha=int(120 * pulse + 40))
+
+
+# ═══════════════════════════════════════
 #  SOUND FX
 # ═══════════════════════════════════════
 def gen_sound(freq, dur=0.08, vol=0.3, wave="sine"):
@@ -732,6 +960,7 @@ class Tank:
         self.muzzle_frame = -1
         self.frozen_timer = 0
         self.tier = 0  # player upgrade tier (0..4)
+        self.name = ""  # optional name tag (player only)
 
     def get_grid(self):
         return int(self.x // TS), int(self.y // TS)
@@ -955,6 +1184,21 @@ class Tank:
                 pygame.draw.rect(surf, (20, 20, 20), (bx_bar - 1, ey, bw + 2, 4), border_radius=1)
                 ew = int(bw * self.energy / self.max_energy)
                 pygame.draw.rect(surf, (50, 200, 255), (bx_bar, ey + 1, ew, 2), border_radius=1)
+
+        # Floating name tag above player tank
+        if self.tank_type == "player" and self.name:
+            label = FONT_SM.render(self.name, True, (255, 255, 255))
+            tag_w = label.get_width() + 14
+            tag_h = label.get_height() + 4
+            tag_x = draw_x - tag_w // 2
+            tag_y = draw_y - s_ts // 2 - int(20 * scale) - tag_h
+            tag = pygame.Surface((tag_w, tag_h), pygame.SRCALPHA)
+            pygame.draw.rect(tag, (40, 30, 70, 220), (0, 0, tag_w, tag_h),
+                             border_radius=tag_h // 2)
+            pygame.draw.rect(tag, (255, 200, 230, 255), (0, 0, tag_w, tag_h),
+                             2, border_radius=tag_h // 2)
+            surf.blit(tag, (tag_x, tag_y))
+            surf.blit(label, (tag_x + 7, tag_y + 2))
 
 # ═══════════════════════════════════════
 #  ENEMY AI
@@ -1215,6 +1459,32 @@ class Game:
         self.total_kills = 0
         self.total_money_earned = 0
         self.player_tier = 0  # persisted across levels
+        self.gems = 10
+        self.player_name = os.environ.get("TANK_PLAYER_NAME", "Thuanvuse")
+
+        # Kawaii title menu
+        self.menu_buttons = ["BATTLE", "GARAGE", "UPGRADE", "ACHIEVEMENTS"]
+        self.menu_sel = 0
+
+        # Garage / skin selection
+        self.skin_idx = 0
+        self.skin_names = [f"Tier {i + 1}" for i in range(5)]
+        self.unlocked_skins = {0}
+
+        # Achievements (id -> (label, unlocked))
+        self.achievement_defs = [
+            ("FIRST_BLOOD", "Diet ke dich dau tien"),
+            ("LEVEL_5", "Hoan thanh level 5"),
+            ("LEVEL_10", "Hoan thanh level 10"),
+            ("BOSS_SLAYER", "Ha guc 1 Boss"),
+            ("RICH", "Tich luy 5000 GP"),
+            ("MAX_TIER", "Dat Tank tier 4 (MAX)"),
+            ("FROZEN_HUNTER", "Dung FREEZE 3 lan"),
+            ("GRENADIER", "Dung GRENADE 5 lan"),
+        ]
+        self.achievements_unlocked = set()
+        self.freeze_uses = 0
+        self.grenade_uses = 0
 
         # Pause
         self.pause_items = ["TIEP TUC", "CHOI LAI", "VAO SHOP", "CACH CHOI", "VE SANH", "THOAT GAME"]
@@ -1277,6 +1547,7 @@ class Game:
         # Player
         self.player = Tank(new_cols // 2 - 2, new_rows - 2, "player")
         self.player.tier = self.player_tier
+        self.player.name = self.player_name
 
         if self.auto_mode:
             self.player.speed = 3.5
@@ -1514,6 +1785,24 @@ class Game:
                 else:
                     self.auto_path = []
 
+    def _activate_menu_selection(self):
+        choice = self.menu_buttons[self.menu_sel]
+        if choice == "BATTLE":
+            def start():
+                self.score = 0; self.lives = 3; self.money = 0
+                self.total_kills = 0; self.total_money_earned = 0
+                self.player_tier = self.skin_idx  # start at chosen skin tier
+                self.start_level(1)
+                self.state = "level_start"
+                pygame.mixer.music.stop()
+            transition.start(start)
+        elif choice == "GARAGE":
+            self.state = "garage"
+        elif choice == "UPGRADE":
+            self.state = "shop"
+        elif choice == "ACHIEVEMENTS":
+            self.state = "achievements"
+
     def handle_event(self, ev):
         if ev.type == pygame.KEYDOWN:
             # Global hotkeys (work in any state)
@@ -1521,18 +1810,31 @@ class Game:
                 toggle_fullscreen()
                 return
             if self.state == "title":
-                if ev.key == pygame.K_RETURN:
-                    def start():
-                        self.score = 0; self.lives = 3; self.money = 0
-                        self.total_kills = 0; self.total_money_earned = 0
-                        self.player_tier = 0
-                        self.start_level(1)
-                        self.state = "level_start"
-                        pygame.mixer.music.stop()
-                    transition.start(start)
+                if ev.key in (pygame.K_DOWN, pygame.K_s):
+                    self.menu_sel = (self.menu_sel + 1) % len(self.menu_buttons)
+                elif ev.key in (pygame.K_UP, pygame.K_w):
+                    self.menu_sel = (self.menu_sel - 1) % len(self.menu_buttons)
+                elif ev.key == pygame.K_RETURN:
+                    self._activate_menu_selection()
                 elif ev.key == pygame.K_h:
                     self.state = "tutorial"
                     self.tutorial_page = 0
+            elif self.state == "garage":
+                if ev.key in (pygame.K_LEFT, pygame.K_a):
+                    self.skin_idx = (self.skin_idx - 1) % len(self.skin_names)
+                elif ev.key in (pygame.K_RIGHT, pygame.K_d):
+                    self.skin_idx = (self.skin_idx + 1) % len(self.skin_names)
+                elif ev.key == pygame.K_RETURN:
+                    if self.skin_idx not in self.unlocked_skins:
+                        cost = (self.skin_idx + 1) * 200
+                        if self.gems >= cost:
+                            self.gems -= cost
+                            self.unlocked_skins.add(self.skin_idx)
+                elif ev.key == pygame.K_ESCAPE:
+                    self.state = "title"
+            elif self.state == "achievements":
+                if ev.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                    self.state = "title"
             elif self.state == "tutorial":
                 if ev.key == pygame.K_ESCAPE or ev.key == pygame.K_RETURN:
                     self.state = "title"
@@ -1923,6 +2225,7 @@ class Game:
             self.shake_amount = 25
         elif kind == "freeze":
             # Freeze every alive enemy for ~5s (300 ticks at 60 FPS)
+            self.freeze_uses += 1
             for e in self.enemies:
                 if e.alive and e.spawn_timer <= 0:
                     e.frozen_timer = 300
@@ -1945,6 +2248,7 @@ class Game:
             self.shake_amount = 10
         elif kind == "grenade":
             # AOE explosion centered on player; damages enemies within radius
+            self.grenade_uses += 1
             radius = TS * 4
             for e in self.enemies:
                 if e.alive and e.spawn_timer <= 0:
@@ -1977,6 +2281,7 @@ class Game:
 
         # Persist tier across levels
         self.player_tier = self.player.tier
+        self._check_achievements()
 
     # ═══════════════════════════════════
     # SHOP
@@ -2125,6 +2430,8 @@ class Game:
 
         if self.state == "title": self.draw_title()
         elif self.state == "tutorial": self.draw_tutorial()
+        elif self.state == "garage": self.draw_garage()
+        elif self.state == "achievements": self.draw_achievements()
         elif self.state == "level_start": self.draw_level_start()
         elif self.state == "playing": self.draw_game()
         elif self.state == "shop": self.draw_shop()
@@ -2290,32 +2597,33 @@ class Game:
         hud_h = 60
         hud_y = SH - hud_h
 
-        # HUD background with gradient
+        # Kawaii HUD background — pastel gradient bar with rounded top
         hud_bg = pygame.Surface((SW, hud_h), pygame.SRCALPHA)
         for i in range(hud_h):
-            a = int(200 + 55 * (i / hud_h))
-            pygame.draw.line(hud_bg, (20, 22, 30, min(255, a)), (0, i), (SW, i))
+            t = i / hud_h
+            r = int(45 + 25 * t)
+            g = int(30 + 20 * t)
+            b = int(75 + 30 * t)
+            pygame.draw.line(hud_bg, (r, g, b, 235), (0, i), (SW, i))
         surf.blit(hud_bg, (0, hud_y))
-
-        # Top border line with gradient
+        # Rainbow ribbon along the top edge
         for x in range(SW):
-            t = abs(x - SW // 2) / (SW // 2)
-            c = (int(60 + 80 * (1 - t)), int(100 + 60 * (1 - t)), int(180 + 75 * (1 - t)))
-            surf.set_at((x, hud_y), c)
-        pygame.draw.line(surf, (40, 60, 100), (0, hud_y + 1), (SW, hud_y + 1), 1)
+            seg = (x // 80) % len(KAWAII_RAINBOW)
+            col = KAWAII_RAINBOW[seg]
+            for dy in range(2):
+                surf.set_at((x, hud_y + dy), col)
 
-        # Lives
-        lives_t = FONT_SM.render(f"LIVES:", True, (150, 155, 175))
-        surf.blit(lives_t, (10, hud_y + 8))
+        # ── LIVES with heart icons ──
+        lives_lbl = FONT_SM.render("LIVES", True, (255, 220, 240))
+        surf.blit(lives_lbl, (12, hud_y + 6))
         for i in range(max(0, self.lives)):
-            icon = pygame.transform.scale(sprites.tanks["player"][0], (18, 18))
-            surf.blit(icon, (60 + i * 22, hud_y + 6))
+            draw_heart_icon(surf, 12 + i * 26, hud_y + 24, 22, filled=True)
 
-        # Score & Money
-        score_t = FONT_MED.render(f"SCORE: {self.score}", True, (255, 215, 0))
-        surf.blit(score_t, (10, hud_y + 30))
-        money_t = FONT_SM.render(f"${self.money}", True, (100, 255, 120))
-        surf.blit(money_t, (score_t.get_width() + 20, hud_y + 35))
+        # ── SCORE ── (under lives)
+        score_t = FONT_MED.render(f"{self.score:,}", True, (255, 240, 180))
+        surf.blit(score_t, (140, hud_y + 28))
+        sc_lbl = FONT_SM.render("SCORE", True, (200, 200, 240))
+        surf.blit(sc_lbl, (140, hud_y + 12))
 
         # Level badge
         badge_x = SW // 2 - 50
@@ -2416,96 +2724,275 @@ class Game:
 
     def draw_title(self):
         s = self._surf
-        # Gradient background
+        # Pastel night-sky gradient background
         for y in range(SH):
             t = y / SH
-            r = int(8 + 15 * t)
-            g = int(10 + 12 * t)
-            b = int(20 + 35 * t)
-            pygame.draw.line(s, (r, g, b), (0, y), (SW, y))
+            r = int(28 + 30 * t + 10 * math.sin(self.tick * 0.01 + t * 3))
+            g = int(20 + 25 * t)
+            b = int(60 + 45 * t)
+            pygame.draw.line(s, (min(255, r), min(255, g), min(255, b)),
+                             (0, y), (SW, y))
 
-        # Animated background tanks
+        # Sparkly starfield
+        draw_pastel_starfield(s, self.tick, density=80)
+
+        # Subtle background tanks (kawaii style — small + transparent)
         for tank in self.title_tanks:
             tk = tank['type']
             d = tank['dir']
             if tk in sprites.tanks:
                 img = sprites.tanks[tk][d]
-                img = pygame.transform.scale(img, (40, 40))
-                alpha_s = pygame.Surface((40, 40), pygame.SRCALPHA)
+                img = pygame.transform.scale(img, (36, 36))
+                alpha_s = pygame.Surface((36, 36), pygame.SRCALPHA)
                 alpha_s.blit(img, (0, 0))
-                alpha_s.set_alpha(40)
-                s.blit(alpha_s, (int(tank['x']) - 20, int(tank['y']) - 20))
+                alpha_s.set_alpha(35)
+                s.blit(alpha_s, (int(tank['x']) - 18, int(tank['y']) - 18))
 
-        # Floating particles
-        for i in range(60):
-            x = (i * 67 + self.tick * 0.3) % SW
-            y = (i * 43 + self.tick * 0.15) % SH
-            c = [(255, 100, 80), (80, 200, 255), (255, 200, 50), (100, 255, 100), (200, 100, 255)][i % 5]
-            sz = 1 + (i % 3)
-            a = int(20 + abs(math.sin(self.tick * 0.02 + i)) * 40)
-            ps = pygame.Surface((sz * 2 + 2, sz * 2 + 2), pygame.SRCALPHA)
-            pygame.draw.circle(ps, (*c, a), (sz + 1, sz + 1), sz)
-            s.blit(ps, (int(x), int(y)))
+        # Currency panel (top-right) — drawn first so title centers cleanly
+        self._draw_currency_panel(s, SW - 270, 12)
+        # Player profile panel (top-left)
+        self._draw_profile_panel(s, 12, 12)
 
-        # Title with rainbow cycle
-        title = "TANK DAI CHIEN"
-        hue = (self.tick * 2) % 360
-        r = int(200 + 55 * abs(math.sin(math.radians(hue))))
-        g = int(180 + 55 * abs(math.sin(math.radians(hue + 120))))
-        b = int(50 + 50 * abs(math.sin(math.radians(hue + 240))))
+        # Title with kawaii rainbow gradient (below the side panels)
+        draw_rainbow_text(s, "KAWAII TANK KINGDOM", (SW // 2, 100),
+                          FONT_TITLE, tick=self.tick)
+        sub = FONT_SM.render(":  TANK DAI CHIEN  :", True, (255, 220, 240))
+        s.blit(sub, (SW // 2 - sub.get_width() // 2, 158))
 
-        shadow = FONT_TITLE.render(title, True, (60, 40, 0))
-        s.blit(shadow, (SW // 2 - shadow.get_width() // 2 + 3, SH // 2 - 178))
-        title_surf = FONT_TITLE.render(title, True, (r, g, b))
-        s.blit(title_surf, (SW // 2 - title_surf.get_width() // 2, SH // 2 - 180))
-
-        # Subtitle
-        sub = FONT_MED.render("ULTIMATE EDITION v3.0", True, (80, 220, 255))
-        s.blit(sub, (SW // 2 - sub.get_width() // 2, SH // 2 - 130))
-
-        # Tank preview
+        # 5-tank preview row
         tank_types = ["player", "enemy_a", "enemy_b", "elite", "boss"]
-        labels = ["BAN", "DICH A", "DICH B", "TINH NHUE", "BOSS"]
+        labels = ["NEKO", "DICH", "FAST", "ELITE", "BOSS"]
+        preview_y = 188
         for i, (tk, label) in enumerate(zip(tank_types, labels)):
-            bx = SW // 2 - 200 + i * 85
-            by = SH // 2 - 80
-            pygame.draw.rect(s, (20, 22, 40), (bx - 3, by - 3, 70, 75), border_radius=8)
-            pygame.draw.rect(s, (50, 80, 130), (bx - 3, by - 3, 70, 75), 1, border_radius=8)
+            bx = SW // 2 - 235 + i * 95
+            by = preview_y
+            draw_kawaii_panel(s, (bx, by, 80, 90), fill=(70, 50, 100),
+                              border=KAWAII_RAINBOW[i % len(KAWAII_RAINBOW)],
+                              radius=14, shadow_offset=3, glow=False)
             d = (self.tick // 30 + i) % 4
-            if tk in sprites.tanks:
+            if tk == "player":
+                tier = min(len(sprites.player_tiers) - 1, self.skin_idx)
+                tank_img = sprites.player_tiers[tier][d]
+            elif tk in sprites.tanks:
                 tank_img = sprites.tanks[tk][d]
-                big = pygame.transform.scale(tank_img, (50, 50))
-                s.blit(big, (bx + 7, by + 2))
-            lbl = FONT_SM.render(label, True, (200, 200, 220))
-            s.blit(lbl, (bx + 32 - lbl.get_width() // 2, by + 55))
+            else:
+                tank_img = None
+            if tank_img is not None:
+                big = pygame.transform.scale(tank_img, (52, 52))
+                s.blit(big, (bx + 14, by + 8))
+            lbl = FONT_SM.render(label, True, (255, 240, 200))
+            s.blit(lbl, (bx + 40 - lbl.get_width() // 2, by + 65))
 
-        # Controls info
-        controls = [
-            "WASD / Phim Mui Ten: Di chuyen    SPACE: Ban    SHIFT: Chay nhanh",
-            "F: Che do Tu dong    G: Doi thuat toan    1-3: Dung vat pham",
-            "ESC: Tam dung    H: Huong dan choi",
+        # Big menu buttons
+        btn_w, btn_h = 260, 52
+        gap = 14
+        total_h = len(self.menu_buttons) * (btn_h + gap) - gap
+        start_y = SH - total_h - 60
+        icons = [
+            lambda surf, x, y, sz: surf.blit(
+                pygame.transform.scale(sprites.player_tiers[
+                    min(len(sprites.player_tiers) - 1, self.skin_idx)][1],
+                    (sz, sz)), (x, y)),
+            lambda surf, x, y, sz: surf.blit(
+                pygame.transform.scale(sprites.tanks["player"][2], (sz, sz)),
+                (x, y)),
+            draw_coin_icon,
+            lambda surf, x, y, sz: draw_heart_icon(surf, x, y, sz, filled=True),
         ]
-        for i, line in enumerate(controls):
-            c = (140, 150, 170)
-            txt = FONT_SM.render(line, True, c)
-            s.blit(txt, (SW // 2 - txt.get_width() // 2, SH // 2 + 25 + i * 20))
+        for i, label in enumerate(self.menu_buttons):
+            bx = SW // 2 - btn_w // 2
+            by = start_y + i * (btn_h + gap)
+            draw_kawaii_button(s, (bx, by, btn_w, btn_h), label, FONT_MED,
+                               selected=(i == self.menu_sel), color_idx=i,
+                               tick=self.tick, icon_fn=icons[i])
 
-        # Start button
-        pulse = abs(math.sin(self.tick * 0.06))
-        btn_w, btn_h = 320, 45
-        btn_x, btn_y = SW // 2 - btn_w // 2, SH // 2 + 100
+        # Help footer
+        hint = "  ↑/↓  chon  •  ENTER  vao  •  H  huong dan  •  F11  toggle fullscreen"
+        ht = FONT_SM.render(hint, True, (255, 220, 240))
+        s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
 
-        glow = pygame.Surface((btn_w + 20, btn_h + 20), pygame.SRCALPHA)
-        pygame.draw.rect(glow, (80, 200, 255, int(20 + pulse * 40)), (0, 0, btn_w + 20, btn_h + 20), border_radius=22)
-        s.blit(glow, (btn_x - 10, btn_y - 10))
-        pygame.draw.rect(s, (15, 40, 70), (btn_x, btn_y, btn_w, btn_h), border_radius=12)
-        pygame.draw.rect(s, (int(80 + pulse * 120), int(180 + pulse * 75), 255), (btn_x, btn_y, btn_w, btn_h), 2, border_radius=12)
-        start_t = FONT_MED.render("NHAN ENTER DE BAT DAU", True, (int(200 + 55 * pulse), int(220 + 35 * pulse), 255))
-        s.blit(start_t, (SW // 2 - start_t.get_width() // 2, btn_y + 10))
+    def _draw_currency_panel(self, surf, x, y):
+        """Top-right currency display: gold + gems."""
+        w, h = 250, 70
+        draw_kawaii_panel(surf, (x, y, w, h), fill=(50, 35, 80),
+                          border=(255, 200, 230), radius=14,
+                          shadow_offset=3, glow=False)
+        # Gold row
+        draw_coin_icon(surf, x + 12, y + 8, 22)
+        gt = FONT_MED.render(f"{self.money:,}", True, (255, 240, 180))
+        surf.blit(gt, (x + 42, y + 9))
+        plus_g = FONT_SM.render("+", True, (255, 255, 200))
+        pygame.draw.circle(surf, (90, 200, 110), (x + w - 22, y + 19), 11)
+        surf.blit(plus_g, (x + w - 25, y + 12))
+        # Gem row
+        draw_gem_icon(surf, x + 12, y + 38, 22)
+        gemt = FONT_MED.render(f"{self.gems:,}", True, (200, 240, 255))
+        surf.blit(gemt, (x + 42, y + 39))
+        pygame.draw.circle(surf, (90, 200, 110), (x + w - 22, y + 49), 11)
+        surf.blit(plus_g, (x + w - 25, y + 42))
 
-        # Tutorial button
-        tut_t = FONT_SM.render("[ H ] HUONG DAN CHOI", True, (120, 160, 200))
-        s.blit(tut_t, (SW // 2 - tut_t.get_width() // 2, btn_y + btn_h + 15))
+    def draw_garage(self):
+        s = self._surf
+        for y in range(SH):
+            t = y / SH
+            pygame.draw.line(s, (int(35 + 20 * t), int(25 + 15 * t),
+                                 int(70 + 40 * t)), (0, y), (SW, y))
+        draw_pastel_starfield(s, self.tick, density=60)
+        # Title
+        draw_rainbow_text(s, "GARAGE", (SW // 2, 30), FONT_TITLE, tick=self.tick)
+        sub = FONT_SM.render("Chon mau tank cua ban", True, (255, 220, 240))
+        s.blit(sub, (SW // 2 - sub.get_width() // 2, 90))
+
+        # Currency panel
+        self._draw_currency_panel(s, SW - 270, 12)
+
+        # Big tank preview at center
+        center_x, center_y = SW // 2, 290
+        panel_w, panel_h = 360, 280
+        draw_kawaii_panel(s, (center_x - panel_w // 2, center_y - panel_h // 2,
+                              panel_w, panel_h),
+                          fill=(60, 45, 95),
+                          border=KAWAII_RAINBOW[self.skin_idx % 6],
+                          radius=18, shadow_offset=4, glow=True)
+        tier = min(len(sprites.player_tiers) - 1, self.skin_idx)
+        d = (self.tick // 30) % 4
+        big = pygame.transform.scale(sprites.player_tiers[tier][d], (180, 180))
+        s.blit(big, (center_x - 90, center_y - 110))
+        # Stats per tier
+        stats_list = [
+            ("HP", 4 + self.skin_idx),
+            ("FIRE RATE", 5 + self.skin_idx),
+            ("BULLET PWR", 1 + self.skin_idx // 2),
+            ("ARMOR", self.skin_idx),
+        ]
+        for i, (lbl, val) in enumerate(stats_list):
+            yy = center_y + 60 + i * 18
+            lt = FONT_SM.render(lbl, True, (200, 220, 255))
+            s.blit(lt, (center_x - 130, yy))
+            for j in range(5):
+                col = (255, 220, 80) if j < val else (90, 60, 100)
+                pygame.draw.rect(s, col,
+                                 (center_x + 10 + j * 20, yy + 2, 16, 10),
+                                 border_radius=3)
+
+        # Skin name + status
+        name = self.skin_names[self.skin_idx]
+        nt = FONT_BIG.render(name, True, (255, 240, 200))
+        s.blit(nt, (center_x - nt.get_width() // 2, center_y + 130))
+        if self.skin_idx in self.unlocked_skins:
+            stat = FONT_MED.render("UNLOCKED", True, (130, 240, 160))
+            s.blit(stat, (center_x - stat.get_width() // 2, center_y + 165))
+        else:
+            cost = (self.skin_idx + 1) * 200
+            stat = FONT_MED.render(f"COST: {cost} GEMS", True, (200, 220, 255))
+            s.blit(stat, (center_x - stat.get_width() // 2, center_y + 165))
+
+        # Left/right arrows
+        for dx, key, sym in [(-1, "<", "<"), (+1, ">", ">")]:
+            ax = center_x + dx * (panel_w // 2 + 50)
+            ay = center_y - 20
+            pulse = abs(math.sin(self.tick * 0.1 + dx))
+            r = int(30 + pulse * 6)
+            pygame.draw.circle(s, (80, 60, 120), (ax, ay), r)
+            pygame.draw.circle(s, (255, 200, 230), (ax, ay), r, 3)
+            ar = FONT_BIG.render(sym, True, (255, 255, 255))
+            s.blit(ar, (ax - ar.get_width() // 2, ay - ar.get_height() // 2))
+
+        # Bottom hint bar
+        hint = "←/→ doi tank   ENTER mua bang gem   ESC quay lai"
+        ht = FONT_SM.render(hint, True, (255, 230, 240))
+        s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
+
+    def draw_achievements(self):
+        s = self._surf
+        for y in range(SH):
+            t = y / SH
+            pygame.draw.line(s, (int(40 + 20 * t), int(30 + 15 * t),
+                                 int(70 + 35 * t)), (0, y), (SW, y))
+        draw_pastel_starfield(s, self.tick, density=50)
+
+        draw_rainbow_text(s, "ACHIEVEMENTS", (SW // 2, 30), FONT_TITLE,
+                          tick=self.tick)
+        unlocked_count = len(self.achievements_unlocked)
+        total = len(self.achievement_defs)
+        sub = FONT_MED.render(f"{unlocked_count}/{total} dat duoc",
+                              True, (255, 240, 200))
+        s.blit(sub, (SW // 2 - sub.get_width() // 2, 95))
+
+        # Grid of achievement cards
+        cols = 2
+        card_w, card_h = 360, 70
+        gap_x, gap_y = 30, 16
+        total_w = cols * card_w + (cols - 1) * gap_x
+        start_x = SW // 2 - total_w // 2
+        start_y = 140
+        for i, (key, label) in enumerate(self.achievement_defs):
+            row = i // cols
+            col = i % cols
+            x = start_x + col * (card_w + gap_x)
+            y = start_y + row * (card_h + gap_y)
+            unlocked = key in self.achievements_unlocked
+            border = (255, 220, 100) if unlocked else (110, 90, 130)
+            fill = (75, 55, 110) if unlocked else (45, 35, 70)
+            draw_kawaii_panel(s, (x, y, card_w, card_h), fill=fill,
+                              border=border, radius=14, shadow_offset=3,
+                              glow=unlocked)
+            # Trophy / lock icon
+            ic_x, ic_y = x + 18, y + card_h // 2
+            if unlocked:
+                # Star/trophy
+                pygame.draw.circle(s, (255, 220, 80), (ic_x + 14, ic_y), 18)
+                pygame.draw.circle(s, (200, 130, 30), (ic_x + 14, ic_y), 18, 3)
+                star = FONT_MED.render("*", True, (255, 100, 30))
+                s.blit(star, (ic_x + 14 - star.get_width() // 2,
+                              ic_y - star.get_height() // 2))
+            else:
+                pygame.draw.rect(s, (90, 80, 110),
+                                 (ic_x, ic_y - 12, 28, 24), border_radius=4)
+                pygame.draw.rect(s, (200, 200, 220),
+                                 (ic_x + 4, ic_y - 18, 20, 16), 2,
+                                 border_radius=8)
+            # Text
+            nt = FONT_MED.render(key.replace("_", " ").title(), True,
+                                 (255, 240, 220) if unlocked else (170, 160, 190))
+            s.blit(nt, (x + 60, y + 14))
+            dt = FONT_SM.render(label, True,
+                                (220, 220, 250) if unlocked else (140, 130, 160))
+            s.blit(dt, (x + 60, y + 40))
+
+        # Hint
+        hint = "ENTER hoac ESC quay lai"
+        ht = FONT_SM.render(hint, True, (255, 230, 240))
+        s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
+
+    def _check_achievements(self):
+        u = self.achievements_unlocked
+        if self.total_kills >= 1: u.add("FIRST_BLOOD")
+        if self.level >= 5 and self.stats.get("levels_completed", 0) >= 5:
+            u.add("LEVEL_5")
+        if self.level >= 10 and self.stats.get("levels_completed", 0) >= 10:
+            u.add("LEVEL_10")
+        if self.stats.get("bosses_killed", 0) >= 1: u.add("BOSS_SLAYER")
+        if self.total_money_earned >= 5000: u.add("RICH")
+        if self.player_tier >= 4: u.add("MAX_TIER")
+        if self.freeze_uses >= 3: u.add("FROZEN_HUNTER")
+        if self.grenade_uses >= 5: u.add("GRENADIER")
+
+    def _draw_profile_panel(self, surf, x, y):
+        """Player profile (top-left): tank avatar + name."""
+        w, h = 230, 70
+        draw_kawaii_panel(surf, (x, y, w, h), fill=(50, 35, 80),
+                          border=(180, 220, 255), radius=14,
+                          shadow_offset=3, glow=False)
+        # Avatar
+        tier = min(len(sprites.player_tiers) - 1, self.skin_idx)
+        avatar = pygame.transform.scale(sprites.player_tiers[tier][0], (50, 50))
+        surf.blit(avatar, (x + 8, y + 10))
+        # Name
+        nm = FONT_MED.render("PLAYER", True, (255, 240, 220))
+        surf.blit(nm, (x + 70, y + 8))
+        nick = FONT_SM.render(self.player_name, True, (180, 220, 255))
+        surf.blit(nick, (x + 70, y + 35))
 
     def draw_tutorial(self):
         s = self._surf
