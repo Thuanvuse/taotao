@@ -3,10 +3,100 @@ PREMIUM ULTRA DELUXE Sprite Engine v3.0
 Tank Dai Chien - ULTIMATE EDITION
 Enhanced visuals, detailed tanks, premium tiles, weather effects, minimap support
 """
+import os
 import pygame, math, random
 from enum import Enum
 
 TS = 32
+
+# Reference asset image — used to override a few item icons with pixel-art
+# sprites sliced directly from the original art reference. If the file is
+# missing or anything fails, the procedural icons are used as fallback.
+ASSET_IMAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "assets", "tank_battle_assets.png")
+
+# Item kind -> (left, top, right, bottom) bounding box in the asset image.
+# Coordinates target the cleaner bottom rows of the items grid.
+PIXEL_ART_ITEM_BOXES = {
+    "freeze":    (470, 250, 545, 320),  # CLOCK (FREEZE)
+    "max_power": (545, 320, 620, 390),  # PISTOL (MAX POWER)
+    "grenade":   (620, 250, 695, 320),  # GRENADE (BOMB)
+    "life":      (620, 320, 695, 390),  # HEART (EXTRA LIFE)
+}
+
+
+def _slice_pixel_art_item(asset_surface, box, output_size=30):
+    """Slice a single item icon out of the asset image and key out the
+    dark cell background + colored border by sampling edge colors."""
+    left, top, right, bottom = box
+    w = right - left
+    h = bottom - top
+    if (left < 0 or top < 0 or
+            right > asset_surface.get_width() or
+            bottom > asset_surface.get_height()):
+        return None
+
+    cell = pygame.Surface((w, h), pygame.SRCALPHA)
+    src_rect = pygame.Rect(left, top, w, h)
+    cell.blit(asset_surface, (0, 0), src_rect)
+
+    # Sample edge pixels (border + cell background) — these will be removed.
+    samples = []
+    step = max(1, w // 8)
+    for x in range(0, w, step):
+        samples.append(cell.get_at((x, 0))[:3])
+        samples.append(cell.get_at((x, h - 1))[:3])
+    step = max(1, h // 8)
+    for y in range(0, h, step):
+        samples.append(cell.get_at((0, y))[:3])
+        samples.append(cell.get_at((w - 1, y))[:3])
+
+    # Build a 32-bit RGBA copy and mask out background pixels.
+    out = pygame.Surface((w, h), pygame.SRCALPHA)
+    for y in range(h):
+        for x in range(w):
+            r, g, b, _ = cell.get_at((x, y))
+            keep = True
+            # Mask very dark pixels (cell background)
+            if r + g + b < 60:
+                keep = False
+            else:
+                for sr, sg, sb in samples:
+                    dr, dg, db = r - sr, g - sg, b - sb
+                    if dr * dr + dg * dg + db * db < 25 * 25:
+                        keep = False
+                        break
+            if keep:
+                out.set_at((x, y), (r, g, b, 255))
+
+    return pygame.transform.scale(out, (output_size, output_size))
+
+
+def try_load_pixel_art_items(asset_path=ASSET_IMAGE_PATH):
+    """Try to load the asset image and slice item icons from it.
+
+    Returns a dict mapping item kind -> pygame.Surface for any items that
+    were successfully sliced. On any failure (missing file, bad image,
+    etc.) returns an empty dict so the caller can fall back to procedural
+    sprites.
+    """
+    if not os.path.exists(asset_path):
+        return {}
+    try:
+        asset = pygame.image.load(asset_path).convert_alpha()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[sprites] Could not load pixel art asset: {exc}")
+        return {}
+
+    result = {}
+    for kind, box in PIXEL_ART_ITEM_BOXES.items():
+        try:
+            icon = _slice_pixel_art_item(asset, box)
+            if icon is not None:
+                result[kind] = icon
+        except Exception as exc:  # noqa: BLE001
+            print(f"[sprites] Slice failed for {kind}: {exc}")
+    return result
 
 # ═══════════════════════════════════════════════
 #  MATERIAL & COLOR SYSTEM
@@ -80,6 +170,61 @@ TANK_COLORS = {
         "stripe": (255, 0, 255), "emblem": (255, 150, 255),
     },
 }
+
+# Player tier palettes (yellow -> gold -> orange -> red-orange -> premium)
+# Mirrors the 5-tier player tanks in the asset reference image.
+PLAYER_TIER_COLORS = [
+    {  # Tier 0 - basic yellow
+        "body_base": (220, 180, 50), "body_shadow": (160, 120, 25), "body_highlight": (255, 220, 110),
+        "body_specular": (255, 240, 180), "material": Material.METALLIC,
+        "turret_base": (200, 160, 40), "turret_highlight": (240, 200, 90),
+        "barrel_base": (210, 170, 60), "barrel_highlight": (245, 215, 130),
+        "track_base": (80, 60, 25), "track_highlight": (120, 95, 40), "track_rivet": (160, 130, 60),
+        "accent": (255, 230, 150), "eye_bg": (255, 250, 240), "pupil": (40, 30, 10),
+        "blush": (255, 180, 100), "camo_color": (200, 160, 50),
+        "stripe": (255, 240, 80), "emblem": (255, 255, 220),
+    },
+    {  # Tier 1 - brighter gold
+        "body_base": (235, 195, 50), "body_shadow": (170, 130, 20), "body_highlight": (255, 230, 120),
+        "body_specular": (255, 245, 195), "material": Material.METALLIC,
+        "turret_base": (215, 175, 40), "turret_highlight": (245, 215, 100),
+        "barrel_base": (225, 185, 60), "barrel_highlight": (250, 225, 140),
+        "track_base": (70, 50, 20), "track_highlight": (115, 90, 35), "track_rivet": (160, 130, 60),
+        "accent": (255, 245, 170), "eye_bg": (255, 250, 240), "pupil": (40, 30, 10),
+        "blush": (255, 200, 110), "camo_color": (220, 180, 50),
+        "stripe": (255, 255, 100), "emblem": (255, 255, 230),
+    },
+    {  # Tier 2 - orange tint
+        "body_base": (240, 160, 50), "body_shadow": (170, 100, 20), "body_highlight": (255, 200, 110),
+        "body_specular": (255, 230, 180), "material": Material.METALLIC,
+        "turret_base": (215, 145, 40), "turret_highlight": (245, 185, 95),
+        "barrel_base": (225, 155, 60), "barrel_highlight": (255, 200, 130),
+        "track_base": (75, 45, 20), "track_highlight": (115, 75, 35), "track_rivet": (160, 110, 55),
+        "accent": (255, 225, 160), "eye_bg": (255, 250, 240), "pupil": (40, 25, 10),
+        "blush": (255, 170, 90), "camo_color": (220, 145, 50),
+        "stripe": (255, 220, 70), "emblem": (255, 255, 220),
+    },
+    {  # Tier 3 - deep orange / red trim
+        "body_base": (240, 130, 40), "body_shadow": (170, 75, 15), "body_highlight": (255, 175, 90),
+        "body_specular": (255, 215, 165), "material": Material.METALLIC,
+        "turret_base": (215, 110, 30), "turret_highlight": (245, 165, 80),
+        "barrel_base": (220, 130, 50), "barrel_highlight": (255, 180, 110),
+        "track_base": (75, 35, 15), "track_highlight": (115, 60, 30), "track_rivet": (160, 90, 45),
+        "accent": (255, 200, 130), "eye_bg": (255, 250, 240), "pupil": (40, 20, 10),
+        "blush": (255, 150, 80), "camo_color": (220, 110, 40),
+        "stripe": (255, 80, 50), "emblem": (255, 240, 200),
+    },
+    {  # Tier 4 - max power, premium look
+        "body_base": (245, 110, 35), "body_shadow": (170, 55, 10), "body_highlight": (255, 160, 80),
+        "body_specular": (255, 220, 180), "material": Material.CHROME,
+        "turret_base": (220, 85, 25), "turret_highlight": (250, 150, 70),
+        "barrel_base": (230, 105, 40), "barrel_highlight": (255, 170, 100),
+        "track_base": (60, 30, 15), "track_highlight": (110, 55, 25), "track_rivet": (180, 100, 50),
+        "accent": (255, 230, 180), "eye_bg": (255, 250, 240), "pupil": (255, 60, 30),
+        "blush": (255, 130, 70), "camo_color": (220, 90, 30),
+        "stripe": (255, 240, 80), "emblem": (255, 255, 255),
+    },
+]
 
 # ═══════════════════════════════════════════════
 #  HELPER DRAWING FUNCTIONS
@@ -267,8 +412,7 @@ def make_base_tile_ultra():
 #  TANK SPRITES - ULTRA DETAILED
 # ═══════════════════════════════════════════════
 
-def make_tank_surface_ultra(tank_key, direction):
-    c = TANK_COLORS[tank_key]
+def make_tank_surface_from_colors(c, direction):
     s = pygame.Surface((TS, TS), pygame.SRCALPHA)
 
     # TRACKS with tread detail
@@ -346,6 +490,13 @@ def make_tank_surface_ultra(tank_key, direction):
         final.blit(rb, (-2, TS // 2 - 3))
 
     return final
+
+def make_tank_surface_ultra(tank_key, direction):
+    return make_tank_surface_from_colors(TANK_COLORS[tank_key], direction)
+
+def make_player_tier_surface(tier, direction):
+    tier = max(0, min(len(PLAYER_TIER_COLORS) - 1, tier))
+    return make_tank_surface_from_colors(PLAYER_TIER_COLORS[tier], direction)
 
 # ═══════════════════════════════════════════════
 #  BULLETS - ENHANCED
@@ -486,6 +637,8 @@ def make_item_surface(kind):
         "rapid": (255, 150, 40), "multi": (220, 200, 40),
         "pierce": (80, 200, 255), "bomb": (100, 100, 100),
         "laser": (0, 255, 180), "plasma": (200, 50, 255),
+        "freeze": (120, 220, 255), "max_power": (255, 200, 60),
+        "grenade": (90, 180, 90),
     }
     c = colors.get(kind, (200, 200, 200))
     gl = (min(255, c[0] + 60), min(255, c[1] + 60), min(255, c[2] + 60))
@@ -552,6 +705,49 @@ def make_item_surface(kind):
     elif kind == "plasma":
         pygame.draw.circle(s, gl, (15, 15), 6)
         pygame.draw.circle(s, (255, 200, 255), (15, 15), 3)
+    elif kind == "freeze":
+        # Clock face
+        pygame.draw.circle(s, (235, 245, 255), (15, 15), 8)
+        pygame.draw.circle(s, (60, 80, 120), (15, 15), 8, 2)
+        # Top button
+        pygame.draw.rect(s, (60, 80, 120), (13, 4, 4, 3), border_radius=1)
+        # Hour markers
+        for ang in (0, 90, 180, 270):
+            rad = math.radians(ang)
+            x = 15 + math.cos(rad) * 6
+            y = 15 + math.sin(rad) * 6
+            pygame.draw.circle(s, (60, 80, 120), (int(x), int(y)), 1)
+        # Hands
+        pygame.draw.line(s, (40, 60, 100), (15, 15), (15, 10), 2)
+        pygame.draw.line(s, (40, 60, 100), (15, 15), (19, 17), 2)
+        # Frost glint
+        pygame.draw.circle(s, (180, 230, 255), (12, 12), 2)
+    elif kind == "max_power":
+        # Pistol body
+        pygame.draw.rect(s, (60, 60, 70), (6, 12, 14, 5))
+        pygame.draw.rect(s, gl, (6, 12, 14, 5), 1)
+        # Barrel
+        pygame.draw.rect(s, (40, 40, 50), (16, 10, 8, 4))
+        pygame.draw.rect(s, gl, (24, 11, 1, 2))
+        # Grip
+        pygame.draw.polygon(s, (90, 60, 40), [(8, 17), (14, 17), (12, 24), (10, 24)])
+        pygame.draw.polygon(s, (140, 90, 50), [(8, 17), (14, 17), (12, 24), (10, 24)], 1)
+        # Trigger guard
+        pygame.draw.circle(s, (60, 60, 70), (13, 18), 2, 1)
+    elif kind == "grenade":
+        # Grenade body
+        pygame.draw.rect(s, (60, 90, 50), (10, 12, 10, 12), border_radius=2)
+        pygame.draw.rect(s, c, (10, 12, 10, 12), 1, border_radius=2)
+        # Grid texture
+        for gy in range(14, 23, 3):
+            pygame.draw.line(s, (40, 60, 35), (11, gy), (19, gy), 1)
+        for gx in range(12, 20, 3):
+            pygame.draw.line(s, (40, 60, 35), (gx, 13), (gx, 23), 1)
+        # Cap
+        pygame.draw.rect(s, (180, 180, 60), (12, 9, 6, 3))
+        # Pin
+        pygame.draw.circle(s, (220, 220, 80), (19, 8), 2, 1)
+        pygame.draw.line(s, (200, 200, 70), (18, 9), (15, 11), 1)
     else:
         pygame.draw.circle(s, c, (15, 15), 8)
 
@@ -569,7 +765,7 @@ def make_item_surface(kind):
 def make_score_popup_font():
     try:
         f = pygame.font.SysFont("consolas", 16, bold=True)
-    except:
+    except Exception:
         f = pygame.font.Font(None, 20)
     return {v: f.render(f"+{v}", True, (255, 255, 255)) for v in [50, 100, 150, 200, 500]}
 
@@ -708,6 +904,10 @@ class SpriteCache:
         # Tanks (including boss)
         self.tanks = {k: [make_tank_surface_ultra(k, d) for d in range(4)] for k in TANK_COLORS}
 
+        # Player tier sprites (5 tiers x 4 directions)
+        self.player_tiers = [[make_player_tier_surface(t, d) for d in range(4)]
+                             for t in range(len(PLAYER_TIER_COLORS))]
+
         # Bullets
         self.bullet = make_bullet()
         self.bullet_enemy = make_bullet((255, 100, 100))
@@ -723,8 +923,17 @@ class SpriteCache:
 
         # Items
         all_items = ["health", "shield", "speed", "star", "money", "life",
-                     "rapid", "multi", "pierce", "bomb", "laser", "plasma"]
+                     "rapid", "multi", "pierce", "bomb", "laser", "plasma",
+                     "freeze", "max_power", "grenade"]
         self.items = {k: make_item_surface(k) for k in all_items}
+
+        # Try to override a few items with pixel art sliced from the
+        # reference asset image. Silently falls back to procedural icons.
+        pixel_art = try_load_pixel_art_items()
+        if pixel_art:
+            print(f"Loaded {len(pixel_art)} pixel-art item(s) from asset image: "
+                  f"{sorted(pixel_art.keys())}")
+            self.items.update(pixel_art)
 
         # Score popups
         self.score_popups = make_score_popup_font()
