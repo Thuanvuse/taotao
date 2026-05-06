@@ -1790,7 +1790,7 @@ class Game:
 
     def _activate_menu_selection(self):
         choice = self.menu_buttons[self.menu_sel]
-        if choice == "BATTLE":
+        if choice == "CHIẾN ĐẤU":
             def start():
                 self.score = 0; self.lives = 3; self.money = 0
                 self.total_kills = 0; self.total_money_earned = 0
@@ -1799,11 +1799,11 @@ class Game:
                 self.state = "level_start"
                 pygame.mixer.music.stop()
             transition.start(start)
-        elif choice == "GARAGE":
+        elif choice == "GA-RA":
             self.state = "garage"
-        elif choice == "UPGRADE":
+        elif choice == "NÂNG CẤP":
             self.state = "shop"
-        elif choice == "ACHIEVEMENTS":
+        elif choice == "THÀNH TỰU":
             self.state = "achievements"
 
     def handle_event(self, ev):
@@ -1895,22 +1895,22 @@ class Game:
                     self.pause_sel = (self.pause_sel + 1) % len(self.pause_items)
                 elif ev.key == pygame.K_RETURN:
                     sel = self.pause_items[self.pause_sel]
-                    if sel == "TIEP TUC": self.state = "playing"
-                    elif sel == "CHOI LAI":
+                    if sel == "TIẾP TỤC": self.state = "playing"
+                    elif sel == "CHƠI LẠI":
                         self.start_level(self.level)
                         pygame.mixer.music.stop()
-                    elif sel == "VAO SHOP":
+                    elif sel == "VÀO SHOP":
                         self.state = "shop"
                         try: pygame.mixer.music.play(-1)
                         except Exception: pass
-                    elif sel == "CACH CHOI":
+                    elif sel == "CÁCH CHƠI":
                         self.state = "tutorial"
                         self.tutorial_page = 0
-                    elif sel == "VE SANH":
+                    elif sel == "VỀ SẢNH":
                         self.state = "title"
                         try: pygame.mixer.music.play(-1)
                         except Exception: pass
-                    elif sel == "THOAT GAME":
+                    elif sel == "THOÁT GAME":
                         pygame.quit(); sys.exit()
 
             elif self.state in ("gameover", "level_clear"):
