@@ -35,9 +35,20 @@ MAP_THEMES = ["default", "desert", "snow", "city", "jungle", "lava"]
 
 pygame.init()
 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
-screen = pygame.display.set_mode((SW, SH), pygame.FULLSCREEN | pygame.SCALED)
+
+# Allow disabling fullscreen via env var (useful for debugging / windowed play)
+START_WINDOWED = os.environ.get("TANK_WINDOWED", "0") == "1"
+_screen_flags = (0 if START_WINDOWED else pygame.FULLSCREEN) | pygame.SCALED
+screen = pygame.display.set_mode((SW, SH), _screen_flags)
 pygame.display.set_caption("TANK DAI CHIEN - ULTIMATE")
 clock = pygame.time.Clock()
+is_fullscreen = not START_WINDOWED
+
+def toggle_fullscreen():
+    global is_fullscreen
+    is_fullscreen = not is_fullscreen
+    flags = (pygame.FULLSCREEN if is_fullscreen else 0) | pygame.SCALED
+    pygame.display.set_mode((SW, SH), flags)
 
 try:
     FONT_BIG = pygame.font.SysFont("consolas", 36, bold=True)
@@ -45,7 +56,7 @@ try:
     FONT_SM = pygame.font.SysFont("consolas", 14)
     FONT_TITLE = pygame.font.SysFont("consolas", 48, bold=True)
     FONT_HUGE = pygame.font.SysFont("consolas", 60, bold=True)
-except:
+except Exception:
     FONT_BIG = pygame.font.Font(None, 40)
     FONT_MED = pygame.font.Font(None, 24)
     FONT_SM = pygame.font.Font(None, 16)
@@ -577,8 +588,12 @@ class Dog:
         self.state = "idle"
         self.dir_key = "down"
         self.move_timer = 0
+        self.frozen_timer = 0
 
     def update(self, grid, player_pos):
+        if self.frozen_timer > 0:
+            self.frozen_timer -= 1
+            return
         self.frame = (self.frame + 0.15) % 4
         if self.bite_cooldown > 0: self.bite_cooldown -= 1
         dist = math.hypot(self.x - player_pos[0], self.y - player_pos[1])
@@ -672,7 +687,8 @@ class Item:
         colors = {"health": (255, 80, 80), "shield": (80, 140, 255), "speed": (80, 255, 130),
                   "star": (255, 215, 0), "money": (255, 220, 50), "life": (255, 50, 150),
                   "rapid": (255, 150, 40), "multi": (220, 200, 40), "pierce": (80, 200, 255),
-                  "bomb": (150, 150, 150), "laser": (0, 255, 180), "plasma": (200, 50, 255)}
+                  "bomb": (150, 150, 150), "laser": (0, 255, 180), "plasma": (200, 50, 255),
+                  "freeze": (120, 220, 255), "max_power": (255, 200, 60), "grenade": (90, 200, 90)}
         c = colors.get(self.kind, (255, 255, 100))
 
         gs = pygame.Surface((r * 4, r * 4), pygame.SRCALPHA)
@@ -714,6 +730,8 @@ class Tank:
         self.skill_timer = 0
         self.skill_ammo = 0
         self.muzzle_frame = -1
+        self.frozen_timer = 0
+        self.tier = 0  # player upgrade tier (0..4)
 
     def get_grid(self):
         return int(self.x // TS), int(self.y // TS)
@@ -880,9 +898,13 @@ class Tank:
             surf.blit(ss, (draw_x - sr, draw_y - sr))
 
         tank_key = self.tank_type
-        if tank_key not in sprites.tanks:
-            tank_key = "enemy_a"
-        img = sprites.tanks[tank_key][self.dir]
+        if tank_key == "player":
+            tier = max(0, min(len(sprites.player_tiers) - 1, getattr(self, "tier", 0)))
+            img = sprites.player_tiers[tier][self.dir]
+        else:
+            if tank_key not in sprites.tanks:
+                tank_key = "enemy_a"
+            img = sprites.tanks[tank_key][self.dir]
         if scale != 1.0: img = pygame.transform.scale(img, (s_ts, s_ts))
 
         if self.flash > 0 and tick % 3 < 1:
@@ -891,6 +913,22 @@ class Tank:
             surf.blit(white_img, (draw_x - s_ts // 2, draw_y - s_ts // 2))
         else:
             surf.blit(img, (draw_x - s_ts // 2, draw_y - s_ts // 2))
+
+        # Frozen overlay
+        if getattr(self, "frozen_timer", 0) > 0:
+            ice_alpha = int(120 + 60 * abs(math.sin(tick * 0.2)))
+            ice = pygame.Surface((s_ts, s_ts), pygame.SRCALPHA)
+            ice.fill((140, 220, 255, ice_alpha // 2))
+            surf.blit(ice, (draw_x - s_ts // 2, draw_y - s_ts // 2), special_flags=pygame.BLEND_RGBA_ADD)
+            # Ice crystals around tank
+            cr = s_ts // 2 + 2
+            cs = pygame.Surface((cr * 2, cr * 2), pygame.SRCALPHA)
+            for ang in range(0, 360, 60):
+                rad = math.radians(ang + tick * 1.5)
+                xx = cr + math.cos(rad) * cr
+                yy = cr + math.sin(rad) * cr
+                pygame.draw.circle(cs, (200, 240, 255, 220), (int(xx), int(yy)), 2)
+            surf.blit(cs, (draw_x - cr, draw_y - cr))
 
         # Muzzle flash
         if self.muzzle_frame >= 0 and self.muzzle_frame < len(sprites.muzzle_flash):
@@ -959,6 +997,9 @@ class EnemyTank(Tank):
 
     def update_ai(self, grid, player, all_tanks):
         if not self.alive or self.spawn_timer > 0: return None
+        if self.frozen_timer > 0:
+            self.frozen_timer -= 1
+            return None
         my_pos = self.get_grid()
         player_pos = player.get_grid()
         base_pos = (COLS // 2, ROWS - 3)
@@ -1132,7 +1173,7 @@ class Game:
     def __init__(self):
         self.state = "title"
         try: pygame.mixer.music.play(-1)
-        except: pass
+        except Exception: pass
         self.level = 1
         self.score = 0
         self.lives = 3
@@ -1173,6 +1214,7 @@ class Game:
         self.backpack = []
         self.total_kills = 0
         self.total_money_earned = 0
+        self.player_tier = 0  # persisted across levels
 
         # Pause
         self.pause_items = ["TIEP TUC", "CHOI LAI", "VAO SHOP", "CACH CHOI", "VE SANH", "THOAT GAME"]
@@ -1234,6 +1276,7 @@ class Game:
 
         # Player
         self.player = Tank(new_cols // 2 - 2, new_rows - 2, "player")
+        self.player.tier = self.player_tier
 
         if self.auto_mode:
             self.player.speed = 3.5
@@ -1473,11 +1516,16 @@ class Game:
 
     def handle_event(self, ev):
         if ev.type == pygame.KEYDOWN:
+            # Global hotkeys (work in any state)
+            if ev.key == pygame.K_F11:
+                toggle_fullscreen()
+                return
             if self.state == "title":
                 if ev.key == pygame.K_RETURN:
                     def start():
                         self.score = 0; self.lives = 3; self.money = 0
                         self.total_kills = 0; self.total_money_earned = 0
+                        self.player_tier = 0
                         self.start_level(1)
                         self.state = "level_start"
                         pygame.mixer.music.stop()
@@ -1549,14 +1597,14 @@ class Game:
                     elif sel == "VAO SHOP":
                         self.state = "shop"
                         try: pygame.mixer.music.play(-1)
-                        except: pass
+                        except Exception: pass
                     elif sel == "CACH CHOI":
                         self.state = "tutorial"
                         self.tutorial_page = 0
                     elif sel == "VE SANH":
                         self.state = "title"
                         try: pygame.mixer.music.play(-1)
-                        except: pass
+                        except Exception: pass
                     elif sel == "THOAT GAME":
                         pygame.quit(); sys.exit()
 
@@ -1565,7 +1613,7 @@ class Game:
                     def go_shop():
                         self.state = "shop"
                         try: pygame.mixer.music.play(-1)
-                        except: pass
+                        except Exception: pass
                     transition.start(go_shop)
 
             elif self.state == "shop":
@@ -1715,7 +1763,8 @@ class Game:
                         self.grid[gy][gx] = EMPTY
                         spawn_particles(gx * TS + TS // 2, gy * TS + TS // 2, (150, 100, 50), 8)
                         if tile == CRATE or random.random() < 0.1:
-                            item_kinds = ["health", "shield", "speed", "star", "rapid", "multi", "pierce", "bomb"]
+                            item_kinds = ["health", "shield", "speed", "star", "rapid", "multi",
+                                          "pierce", "bomb", "freeze", "grenade", "max_power"]
                             self.items.append(Item(gx, gy, random.choice(item_kinds)))
                     if bullet.kind != "pierce":
                         bullet.alive = False
@@ -1810,7 +1859,9 @@ class Game:
             for _ in range(10):
                 rx, ry = random.randint(1, COLS - 2), random.randint(1, ROWS - 2)
                 if self.grid[ry][rx] == EMPTY:
-                    kind = random.choice(["health", "shield", "speed", "star", "life", "rapid", "multi", "pierce", "bomb"])
+                    kind = random.choice(["health", "shield", "speed", "star", "life",
+                                          "rapid", "multi", "pierce", "bomb",
+                                          "freeze", "grenade", "max_power"])
                     self.items.append(Item(rx, ry, kind)); break
 
     def _respawn_player(self):
@@ -1839,21 +1890,27 @@ class Game:
         elif kind == "rapid":
             self.player.skill = "rapid"; self.player.skill_ammo = 40
             floating_texts.append(FloatingText(self.player.x, self.player.y, "RAPID FIRE!", (255, 100, 50)))
+            self.player.tier = min(4, self.player.tier + 1)
         elif kind == "multi":
             self.player.skill = "ammo"; self.player.skill_timer = 600
             floating_texts.append(FloatingText(self.player.x, self.player.y, "MULTI-SHOT!", (255, 200, 50)))
+            self.player.tier = min(4, self.player.tier + 1)
         elif kind == "pierce":
             self.player.skill = "pierce"; self.player.skill_timer = 600
             floating_texts.append(FloatingText(self.player.x, self.player.y, "PIERCE BULLETS", (80, 200, 255)))
+            self.player.tier = min(4, self.player.tier + 1)
         elif kind == "bomb":
             self.player.skill = "bomb"; self.player.skill_timer = 600
             floating_texts.append(FloatingText(self.player.x, self.player.y, "BOMB BULLETS", (255, 100, 50)))
+            self.player.tier = min(4, self.player.tier + 1)
         elif kind == "laser":
             self.player.skill = "laser"; self.player.skill_timer = 600
             floating_texts.append(FloatingText(self.player.x, self.player.y, "LASER BEAM!", (0, 255, 180)))
+            self.player.tier = min(4, self.player.tier + 1)
         elif kind == "plasma":
             self.player.skill = "plasma"; self.player.skill_timer = 600
             floating_texts.append(FloatingText(self.player.x, self.player.y, "PLASMA SHOTS!", (200, 50, 255)))
+            self.player.tier = min(4, self.player.tier + 1)
         elif kind == "star":
             floating_texts.append(FloatingText(self.player.x, self.player.y, "BOMBA!!!", (255, 50, 50), huge=True))
             for e in self.enemies:
@@ -1864,6 +1921,62 @@ class Game:
                         self.register_kill(e.x, e.y, 100)
                         self.explosions.append(Explosion(e.x, e.y, big=True))
             self.shake_amount = 25
+        elif kind == "freeze":
+            # Freeze every alive enemy for ~5s (300 ticks at 60 FPS)
+            for e in self.enemies:
+                if e.alive and e.spawn_timer <= 0:
+                    e.frozen_timer = 300
+            for d in self.dogs:
+                if d.alive:
+                    d.frozen_timer = 300
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "FREEZE!", (120, 220, 255), huge=True))
+            self.shake_amount = 6
+        elif kind == "max_power":
+            # Instantly upgrade tank to max tier
+            self.player.tier = 4
+            self.player.max_hp = max(self.player.max_hp, 8)
+            self.player.hp = self.player.max_hp
+            self.player.shield += 3
+            self.player.bullet_power = 3
+            self.player.shoot_delay = 8
+            self.player.skill = "pierce"
+            self.player.skill_timer = 900
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "MAX POWER!", (255, 200, 60), huge=True))
+            self.shake_amount = 10
+        elif kind == "grenade":
+            # AOE explosion centered on player; damages enemies within radius
+            radius = TS * 4
+            for e in self.enemies:
+                if e.alive and e.spawn_timer <= 0:
+                    if math.hypot(e.x - self.player.x, e.y - self.player.y) <= radius:
+                        killed = e.hit(4)
+                        if killed:
+                            self.kills += 1
+                            self.register_kill(e.x, e.y, 100)
+                            self.explosions.append(Explosion(e.x, e.y, big=True))
+            for d in self.dogs:
+                if d.alive and math.hypot(d.x - self.player.x, d.y - self.player.y) <= radius:
+                    d.alive = False
+                    self.register_kill(d.x, d.y, 150)
+                    self.explosions.append(Explosion(d.x, d.y))
+            for c in self.chickens:
+                if c.alive and math.hypot(c.x - self.player.x, c.y - self.player.y) <= radius:
+                    c.alive = False
+                    self.register_kill(c.x, c.y, 50)
+            # Burst of explosions for visual feedback
+            for _ in range(6):
+                ang = random.uniform(0, math.tau)
+                rr = random.uniform(0, radius)
+                ex = self.player.x + math.cos(ang) * rr
+                ey = self.player.y + math.sin(ang) * rr
+                self.explosions.append(Explosion(int(ex), int(ey), big=True))
+            spawn_particles(self.player.x, self.player.y, (255, 180, 60), 30)
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "GRENADE!", (90, 220, 90), huge=True))
+            self.shake_amount = 18
+            snd_explode.play()
+
+        # Persist tier across levels
+        self.player_tier = self.player.tier
 
     # ═══════════════════════════════════
     # SHOP
