@@ -171,57 +171,58 @@ TANK_COLORS = {
     },
 }
 
-# Player tier palettes (yellow -> gold -> orange -> red-orange -> premium)
-# Mirrors the 5-tier player tanks in the asset reference image.
+# Player tier palettes — KAWAII edition.
+# Pastel rainbow progression matching the "Kawaii Tank Kingdom" reference.
+# Tier 0 cream-mint  →  1 pink  →  2 sky  →  3 lavender  →  4 rainbow chrome.
 PLAYER_TIER_COLORS = [
-    {  # Tier 0 - basic yellow
-        "body_base": (220, 180, 50), "body_shadow": (160, 120, 25), "body_highlight": (255, 220, 110),
-        "body_specular": (255, 240, 180), "material": Material.METALLIC,
-        "turret_base": (200, 160, 40), "turret_highlight": (240, 200, 90),
-        "barrel_base": (210, 170, 60), "barrel_highlight": (245, 215, 130),
-        "track_base": (80, 60, 25), "track_highlight": (120, 95, 40), "track_rivet": (160, 130, 60),
-        "accent": (255, 230, 150), "eye_bg": (255, 250, 240), "pupil": (40, 30, 10),
-        "blush": (255, 180, 100), "camo_color": (200, 160, 50),
-        "stripe": (255, 240, 80), "emblem": (255, 255, 220),
+    {  # Tier 0 - cream mint (cute starter)
+        "body_base": (255, 240, 180), "body_shadow": (200, 180, 120), "body_highlight": (255, 255, 230),
+        "body_specular": (255, 255, 250), "material": Material.MATTE,
+        "turret_base": (250, 220, 150), "turret_highlight": (255, 245, 200),
+        "barrel_base": (240, 200, 130), "barrel_highlight": (255, 240, 190),
+        "track_base": (160, 130, 90), "track_highlight": (200, 170, 130), "track_rivet": (240, 215, 175),
+        "accent": (255, 230, 160), "eye_bg": (255, 255, 255), "pupil": (50, 30, 70),
+        "blush": (255, 170, 200), "camo_color": (240, 220, 160),
+        "stripe": (255, 200, 210), "emblem": (255, 230, 245),
     },
-    {  # Tier 1 - brighter gold
-        "body_base": (235, 195, 50), "body_shadow": (170, 130, 20), "body_highlight": (255, 230, 120),
-        "body_specular": (255, 245, 195), "material": Material.METALLIC,
-        "turret_base": (215, 175, 40), "turret_highlight": (245, 215, 100),
-        "barrel_base": (225, 185, 60), "barrel_highlight": (250, 225, 140),
-        "track_base": (70, 50, 20), "track_highlight": (115, 90, 35), "track_rivet": (160, 130, 60),
-        "accent": (255, 245, 170), "eye_bg": (255, 250, 240), "pupil": (40, 30, 10),
-        "blush": (255, 200, 110), "camo_color": (220, 180, 50),
-        "stripe": (255, 255, 100), "emblem": (255, 255, 230),
+    {  # Tier 1 - pastel pink
+        "body_base": (255, 180, 215), "body_shadow": (210, 130, 170), "body_highlight": (255, 220, 240),
+        "body_specular": (255, 240, 250), "material": Material.MATTE,
+        "turret_base": (240, 150, 195), "turret_highlight": (255, 200, 230),
+        "barrel_base": (235, 140, 195), "barrel_highlight": (255, 210, 240),
+        "track_base": (170, 90, 130), "track_highlight": (210, 130, 170), "track_rivet": (245, 180, 220),
+        "accent": (255, 225, 240), "eye_bg": (255, 255, 255), "pupil": (60, 30, 80),
+        "blush": (255, 130, 175), "camo_color": (245, 165, 210),
+        "stripe": (255, 240, 230), "emblem": (255, 230, 245),
     },
-    {  # Tier 2 - orange tint
-        "body_base": (240, 160, 50), "body_shadow": (170, 100, 20), "body_highlight": (255, 200, 110),
-        "body_specular": (255, 230, 180), "material": Material.METALLIC,
-        "turret_base": (215, 145, 40), "turret_highlight": (245, 185, 95),
-        "barrel_base": (225, 155, 60), "barrel_highlight": (255, 200, 130),
-        "track_base": (75, 45, 20), "track_highlight": (115, 75, 35), "track_rivet": (160, 110, 55),
-        "accent": (255, 225, 160), "eye_bg": (255, 250, 240), "pupil": (40, 25, 10),
-        "blush": (255, 170, 90), "camo_color": (220, 145, 50),
-        "stripe": (255, 220, 70), "emblem": (255, 255, 220),
+    {  # Tier 2 - pastel sky blue
+        "body_base": (160, 210, 255), "body_shadow": (110, 160, 220), "body_highlight": (210, 240, 255),
+        "body_specular": (240, 250, 255), "material": Material.METALLIC,
+        "turret_base": (130, 190, 250), "turret_highlight": (200, 230, 255),
+        "barrel_base": (120, 180, 245), "barrel_highlight": (190, 225, 255),
+        "track_base": (60, 110, 170), "track_highlight": (100, 150, 200), "track_rivet": (170, 210, 240),
+        "accent": (210, 240, 255), "eye_bg": (255, 255, 255), "pupil": (40, 60, 90),
+        "blush": (255, 165, 200), "camo_color": (140, 195, 245),
+        "stripe": (255, 230, 245), "emblem": (240, 250, 255),
     },
-    {  # Tier 3 - deep orange / red trim
-        "body_base": (240, 130, 40), "body_shadow": (170, 75, 15), "body_highlight": (255, 175, 90),
-        "body_specular": (255, 215, 165), "material": Material.METALLIC,
-        "turret_base": (215, 110, 30), "turret_highlight": (245, 165, 80),
-        "barrel_base": (220, 130, 50), "barrel_highlight": (255, 180, 110),
-        "track_base": (75, 35, 15), "track_highlight": (115, 60, 30), "track_rivet": (160, 90, 45),
-        "accent": (255, 200, 130), "eye_bg": (255, 250, 240), "pupil": (40, 20, 10),
-        "blush": (255, 150, 80), "camo_color": (220, 110, 40),
-        "stripe": (255, 80, 50), "emblem": (255, 240, 200),
+    {  # Tier 3 - pastel lavender
+        "body_base": (210, 180, 255), "body_shadow": (150, 120, 200), "body_highlight": (235, 215, 255),
+        "body_specular": (250, 240, 255), "material": Material.METALLIC,
+        "turret_base": (190, 155, 240), "turret_highlight": (230, 200, 255),
+        "barrel_base": (180, 150, 235), "barrel_highlight": (220, 195, 255),
+        "track_base": (110, 80, 160), "track_highlight": (155, 120, 200), "track_rivet": (210, 180, 240),
+        "accent": (235, 220, 255), "eye_bg": (255, 255, 255), "pupil": (50, 30, 80),
+        "blush": (255, 150, 200), "camo_color": (200, 175, 240),
+        "stripe": (255, 230, 245), "emblem": (250, 240, 255),
     },
-    {  # Tier 4 - max power, premium look
-        "body_base": (245, 110, 35), "body_shadow": (170, 55, 10), "body_highlight": (255, 160, 80),
-        "body_specular": (255, 220, 180), "material": Material.CHROME,
-        "turret_base": (220, 85, 25), "turret_highlight": (250, 150, 70),
-        "barrel_base": (230, 105, 40), "barrel_highlight": (255, 170, 100),
-        "track_base": (60, 30, 15), "track_highlight": (110, 55, 25), "track_rivet": (180, 100, 50),
-        "accent": (255, 230, 180), "eye_bg": (255, 250, 240), "pupil": (255, 60, 30),
-        "blush": (255, 130, 70), "camo_color": (220, 90, 30),
+    {  # Tier 4 - rainbow chrome (MAX kawaii)
+        "body_base": (255, 200, 230), "body_shadow": (200, 130, 180), "body_highlight": (255, 240, 255),
+        "body_specular": (255, 255, 255), "material": Material.CHROME,
+        "turret_base": (230, 180, 240), "turret_highlight": (255, 220, 250),
+        "barrel_base": (210, 220, 255), "barrel_highlight": (240, 245, 255),
+        "track_base": (120, 80, 130), "track_highlight": (180, 140, 200), "track_rivet": (240, 210, 250),
+        "accent": (255, 230, 240), "eye_bg": (255, 255, 255), "pupil": (255, 100, 180),
+        "blush": (255, 140, 190), "camo_color": (220, 180, 240),
         "stripe": (255, 240, 80), "emblem": (255, 255, 255),
     },
 ]
@@ -386,11 +387,97 @@ def make_floor_tile_ultra(theme="default"):
             px, py = random.randint(0, TS-1), random.randint(0, TS-1)
             c = (random.randint(60, 90), random.randint(15, 30), random.randint(5, 15))
             pygame.draw.circle(s, c, (px, py), random.randint(1, 3))
+    elif theme == "kawaii_woodland":
+        # Pastel dirt path with dotted texture + tiny pink flowers
+        s.fill((205, 175, 140))
+        for y in range(0, TS, 4):
+            for x in range(0, TS, 4):
+                if (x + y) % 8 == 0:
+                    c = (random.randint(195, 220), random.randint(165, 190),
+                         random.randint(125, 160))
+                    pygame.draw.circle(s, c, (x + 2, y + 2), 1)
+        for _ in range(3):
+            fx = random.randint(3, TS - 4)
+            fy = random.randint(3, TS - 4)
+            fc = random.choice([(255, 200, 220), (255, 230, 200),
+                                (220, 200, 255), (200, 230, 255)])
+            pygame.draw.circle(s, fc, (fx, fy), 2)
+            pygame.draw.circle(s, (255, 240, 150), (fx, fy), 1)
     else:
         s.fill((28, 30, 38))
         for _ in range(10):
             px, py = random.randint(0, TS-1), random.randint(0, TS-1)
             pygame.draw.circle(s, (38, 40, 48), (px, py), 1)
+    return s
+
+
+def make_brick_tile_kawaii():
+    """Pastel kawaii brick wall — round-cornered candy-pink bricks."""
+    s = pygame.Surface((TS, TS))
+    s.fill((255, 195, 215))
+    for y in range(0, TS, 8):
+        offset = 8 if (y // 8) % 2 == 1 else 0
+        for x in range(0, TS, 16):
+            bx = (x + offset) % TS
+            brick_c = (random.randint(245, 255), random.randint(170, 200),
+                       random.randint(195, 225))
+            draw_bevel_rect(s, brick_c, (bx + 1, y + 1, 14, 6), 1, border_radius=3)
+            # Pastel highlight dot
+            pygame.draw.circle(s, (255, 240, 245), (bx + 4, y + 3), 1)
+    pygame.draw.rect(s, (220, 130, 170), (0, 0, TS, TS), 1, border_radius=4)
+    return s
+
+
+def make_steel_tile_kawaii():
+    """Pastel periwinkle steel — soft chrome with pearl rivets."""
+    s = pygame.Surface((TS, TS))
+    s.fill((180, 195, 235))
+    draw_bevel_rect(s, (210, 220, 250), (2, 2, TS - 4, TS - 4), 4, border_radius=8)
+    # Inner panel lines
+    for i in range(4, TS - 4, 6):
+        pygame.draw.line(s, (235, 240, 255), (i, 4), (i, TS - 4), 1)
+    # Pearl rivets
+    for dx, dy in [(6, 6), (TS - 7, 6), (6, TS - 7), (TS - 7, TS - 7)]:
+        pygame.draw.circle(s, (245, 230, 240), (dx, dy), 3)
+        pygame.draw.circle(s, (200, 180, 220), (dx, dy), 3, 1)
+        pygame.draw.circle(s, (255, 255, 255), (dx - 1, dy - 1), 1)
+    pygame.draw.rect(s, (155, 175, 220), (0, 0, TS, TS), 2, border_radius=8)
+    draw_gloss_overlay(s, (2, 2, TS - 4, TS - 4), 100)
+    return s
+
+
+def make_grass_tile_kawaii():
+    """Pastel meadow with mushrooms + cute flowers."""
+    s = pygame.Surface((TS, TS), pygame.SRCALPHA)
+    # Mint grass blades
+    for _ in range(30):
+        gx = random.randint(0, TS - 1)
+        gy = random.randint(0, TS - 1)
+        height = random.randint(4, 9)
+        sway = random.randint(-2, 2)
+        gc = (random.randint(140, 200), random.randint(220, 255),
+              random.randint(160, 210))
+        pygame.draw.line(s, gc, (gx, gy), (gx + sway, gy - height), 2)
+    # Pastel flowers (5-petal)
+    for _ in range(4):
+        fx = random.randint(5, TS - 6)
+        fy = random.randint(5, TS - 6)
+        petal_c = random.choice([(255, 180, 215), (200, 200, 255),
+                                 (255, 220, 180), (180, 240, 230)])
+        for ang in range(0, 360, 72):
+            rad = math.radians(ang)
+            px = fx + int(math.cos(rad) * 3)
+            py = fy + int(math.sin(rad) * 3)
+            pygame.draw.circle(s, petal_c, (px, py), 2)
+        pygame.draw.circle(s, (255, 240, 130), (fx, fy), 2)
+    # Tiny mushroom
+    if random.random() < 0.45:
+        mx = random.randint(5, TS - 8)
+        my = random.randint(8, TS - 6)
+        pygame.draw.rect(s, (255, 250, 230), (mx + 2, my, 3, 5))
+        pygame.draw.ellipse(s, (255, 130, 150), (mx, my - 4, 7, 6))
+        pygame.draw.circle(s, (255, 240, 240), (mx + 2, my - 3), 1)
+        pygame.draw.circle(s, (255, 240, 240), (mx + 5, my - 2), 1)
     return s
 
 def make_base_tile_ultra():
@@ -638,7 +725,7 @@ def make_item_surface(kind):
         "pierce": (80, 200, 255), "bomb": (100, 100, 100),
         "laser": (0, 255, 180), "plasma": (200, 50, 255),
         "freeze": (120, 220, 255), "max_power": (255, 200, 60),
-        "grenade": (90, 180, 90),
+        "grenade": (90, 180, 90), "gem": (140, 220, 255),
     }
     c = colors.get(kind, (200, 200, 200))
     gl = (min(255, c[0] + 60), min(255, c[1] + 60), min(255, c[2] + 60))
@@ -748,6 +835,16 @@ def make_item_surface(kind):
         # Pin
         pygame.draw.circle(s, (220, 220, 80), (19, 8), 2, 1)
         pygame.draw.line(s, (200, 200, 70), (18, 9), (15, 11), 1)
+    elif kind == "gem":
+        # Cyan kawaii gem (diamond shape with sparkle)
+        diamond = [(15, 6), (22, 13), (15, 24), (8, 13)]
+        pygame.draw.polygon(s, c, diamond)
+        pygame.draw.polygon(s, (255, 255, 255), diamond, 1)
+        # Inner facets
+        pygame.draw.line(s, (255, 255, 255), (15, 6), (15, 24), 1)
+        pygame.draw.line(s, (255, 255, 255), (8, 13), (22, 13), 1)
+        # Top sparkle
+        pygame.draw.circle(s, (255, 255, 255), (12, 11), 1)
     else:
         pygame.draw.circle(s, c, (15, 15), 8)
 
@@ -887,17 +984,26 @@ class SpriteCache:
     def __init__(self):
         print("Loading ULTRA PREMIUM sprites v3.0...")
 
-        # Tiles
-        self.brick = make_brick_tile_ultra()
-        self.steel = make_steel_tile_ultra()
-        self.grass = make_grass_tile_ultra()
+        # Tiles (default style) — kept as base/fallback
+        self._brick_default = make_brick_tile_ultra()
+        self._steel_default = make_steel_tile_ultra()
+        self._grass_default = make_grass_tile_ultra()
+        self.brick = self._brick_default
+        self.steel = self._steel_default
+        self.grass = self._grass_default
         self.crate = make_crate_tile_ultra()
         self.base = make_base_tile_ultra()
         self.water_frames = [make_water_tile_ultra(i) for i in range(12)]
 
+        # Theme-specific tile overrides (used when current theme is in dict)
+        self.brick_themes = {"kawaii_woodland": make_brick_tile_kawaii()}
+        self.steel_themes = {"kawaii_woodland": make_steel_tile_kawaii()}
+        self.grass_themes = {"kawaii_woodland": make_grass_tile_kawaii()}
+
         # Floor themes
         self.floors = {}
-        for theme in ["default", "desert", "snow", "city", "jungle", "lava"]:
+        for theme in ["default", "desert", "snow", "city", "jungle", "lava",
+                      "kawaii_woodland"]:
             self.floors[theme] = make_floor_tile_ultra(theme)
         self.floor = self.floors["default"]
 
@@ -924,7 +1030,7 @@ class SpriteCache:
         # Items
         all_items = ["health", "shield", "speed", "star", "money", "life",
                      "rapid", "multi", "pierce", "bomb", "laser", "plasma",
-                     "freeze", "max_power", "grenade"]
+                     "freeze", "max_power", "grenade", "gem"]
         self.items = {k: make_item_surface(k) for k in all_items}
 
         # Try to override a few items with pixel art sliced from the
@@ -957,3 +1063,8 @@ class SpriteCache:
     def set_floor_theme(self, theme):
         if theme in self.floors:
             self.floor = self.floors[theme]
+        # Swap brick/steel/grass to themed variant when available; restore
+        # default tiles otherwise.
+        self.brick = self.brick_themes.get(theme, self._brick_default)
+        self.steel = self.steel_themes.get(theme, self._steel_default)
+        self.grass = self.grass_themes.get(theme, self._grass_default)

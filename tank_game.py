@@ -31,7 +31,7 @@ DIRS = [(0, -1), (1, 0), (0, 1), (-1, 0)]
 
 EMPTY = 0; BRICK = 1; STEEL = 2; GRASS = 3; WATER = 4; CRATE = 5; BASE = 6
 
-MAP_THEMES = ["default", "desert", "snow", "city", "jungle", "lava"]
+MAP_THEMES = ["kawaii_woodland", "default", "desert", "snow", "city", "jungle", "lava"]
 
 pygame.init()
 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
@@ -40,7 +40,7 @@ pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
 START_WINDOWED = os.environ.get("TANK_WINDOWED", "0") == "1"
 _screen_flags = (0 if START_WINDOWED else pygame.FULLSCREEN) | pygame.SCALED
 screen = pygame.display.set_mode((SW, SH), _screen_flags)
-pygame.display.set_caption("TANK DAI CHIEN - ULTIMATE")
+pygame.display.set_caption("Tank Đại Chiến - Ultimate")
 clock = pygame.time.Clock()
 is_fullscreen = not START_WINDOWED
 
@@ -64,6 +64,234 @@ except Exception:
     FONT_HUGE = pygame.font.Font(None, 64)
 
 sprites = SpriteCache()
+
+# ═══════════════════════════════════════
+#  KAWAII UI PRIMITIVES
+# ═══════════════════════════════════════
+KAWAII_PALETTE = {
+    "pink":     (255, 170, 210),
+    "rose":     (255, 130, 170),
+    "mint":     (130, 230, 200),
+    "sky":      (140, 200, 255),
+    "lavender": (200, 170, 255),
+    "peach":    (255, 200, 140),
+    "lemon":    (255, 240, 130),
+    "cream":    (255, 245, 220),
+    "ink":      (60, 50, 90),
+    "shadow":   (35, 30, 60),
+}
+
+KAWAII_RAINBOW = [(255, 130, 170), (255, 200, 140), (255, 240, 130),
+                  (130, 230, 200), (140, 200, 255), (200, 170, 255)]
+
+
+def draw_kawaii_panel(surf, rect, fill=(60, 50, 95), border=(255, 200, 230),
+                      radius=18, shadow_offset=4, glow=True):
+    """Rounded gradient panel with soft drop shadow + optional pastel glow.
+
+    Glow is rendered as an outer halo only (a slightly larger rounded rect
+    behind the panel) so it never washes out the panel fill itself.
+    """
+    x, y, w, h = rect
+    # Outer glow (drawn first, behind the panel + shadow)
+    if glow:
+        gpad = 14
+        glow_surf = pygame.Surface((w + gpad * 2, h + gpad * 2), pygame.SRCALPHA)
+        for i in range(4):
+            a = 30 - i * 6
+            if a <= 0:
+                break
+            pygame.draw.rect(glow_surf, (*border[:3], a),
+                             (i, i, w + gpad * 2 - i * 2, h + gpad * 2 - i * 2),
+                             border_radius=radius + gpad)
+        surf.blit(glow_surf, (x - gpad, y - gpad))
+    # Drop shadow
+    if shadow_offset:
+        sh = pygame.Surface((w + shadow_offset * 2, h + shadow_offset * 2), pygame.SRCALPHA)
+        pygame.draw.rect(sh, (0, 0, 0, 130),
+                         (shadow_offset, shadow_offset, w, h), border_radius=radius)
+        surf.blit(sh, (x - shadow_offset, y - shadow_offset))
+    # Panel body (vertical gradient from `fill` to a slightly darker shade)
+    panel = pygame.Surface((w, h), pygame.SRCALPHA)
+    for i in range(h):
+        t = i / max(1, h - 1)
+        col = (int(fill[0] * (1 - t * 0.35)),
+               int(fill[1] * (1 - t * 0.35)),
+               int(fill[2] * (1 - t * 0.25)))
+        pygame.draw.line(panel, col, (0, i), (w, i))
+    mask = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.rect(mask, (255, 255, 255, 255), (0, 0, w, h), border_radius=radius)
+    panel.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    surf.blit(panel, (x, y))
+    pygame.draw.rect(surf, border, rect, 2, border_radius=radius)
+
+
+def draw_kawaii_button(surf, rect, label, font, selected=False,
+                       color_idx=0, tick=0, icon_fn=None):
+    """Cute rounded button with pastel rainbow palette."""
+    base_colors = [
+        ((255, 170, 210), (255, 100, 160)),  # pink
+        ((255, 220, 140), (255, 170, 60)),   # peach/orange
+        ((180, 230, 255), (110, 180, 240)),  # sky
+        ((200, 255, 200), (110, 220, 130)),  # mint
+        ((220, 200, 255), (170, 130, 240)),  # lavender
+    ]
+    light, dark = base_colors[color_idx % len(base_colors)]
+    x, y, w, h = rect
+    pulse = (math.sin(tick * 0.08) + 1) * 0.5 if selected else 0
+    # Shadow
+    shadow = pygame.Surface((w + 6, h + 6), pygame.SRCALPHA)
+    pygame.draw.rect(shadow, (0, 0, 0, 130), (3, 3, w, h), border_radius=h // 2)
+    surf.blit(shadow, (x - 3, y - 3))
+    # Body gradient
+    body = pygame.Surface((w, h), pygame.SRCALPHA)
+    for i in range(h):
+        t = i / max(1, h - 1)
+        col = (int(light[0] * (1 - t * 0.4) + dark[0] * t * 0.4),
+               int(light[1] * (1 - t * 0.4) + dark[1] * t * 0.4),
+               int(light[2] * (1 - t * 0.4) + dark[2] * t * 0.4))
+        pygame.draw.line(body, col, (0, i), (w, i))
+    mask = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.rect(mask, (255, 255, 255, 255), (0, 0, w, h), border_radius=h // 2)
+    body.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    # Top gloss highlight
+    gloss = pygame.Surface((w, h // 2), pygame.SRCALPHA)
+    for i in range(h // 2):
+        a = int(160 * (1 - i / max(1, h // 2)))
+        pygame.draw.line(gloss, (255, 255, 255, a), (0, i), (w, i))
+    g_mask = pygame.Surface((w, h // 2), pygame.SRCALPHA)
+    pygame.draw.rect(g_mask, (255, 255, 255, 255), (0, 0, w, h // 2),
+                     border_radius=h // 2)
+    gloss.blit(g_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    body.blit(gloss, (0, 2))
+    surf.blit(body, (x, y))
+    # Border
+    border_col = (255, 255, 255) if selected else (90, 70, 110)
+    pygame.draw.rect(surf, border_col, rect, 3, border_radius=h // 2)
+    if selected:
+        glow = pygame.Surface((w + 30, h + 30), pygame.SRCALPHA)
+        pygame.draw.rect(glow, (255, 240, 200, int(60 + 80 * pulse)),
+                         (0, 0, w + 30, h + 30), border_radius=h // 2 + 10)
+        surf.blit(glow, (x - 15, y - 15), special_flags=pygame.BLEND_RGBA_ADD)
+    # Icon (optional, drawn left)
+    label_x = x + w // 2
+    if icon_fn:
+        icon_size = h - 14
+        icon_fn(surf, x + 14, y + (h - icon_size) // 2, icon_size)
+        label_x = x + w // 2 + 8
+    # Label
+    label_shadow = font.render(label, True, (40, 30, 60))
+    label_surf = font.render(label, True, (255, 255, 255))
+    surf.blit(label_shadow, (label_x - label_surf.get_width() // 2 + 2,
+                             y + (h - label_surf.get_height()) // 2 + 2))
+    surf.blit(label_surf, (label_x - label_surf.get_width() // 2,
+                           y + (h - label_surf.get_height()) // 2))
+
+
+def draw_rainbow_text(surf, text, pos, font, tick=0, jitter=True):
+    """Render text with each character in a different pastel rainbow color
+    and a small wave animation."""
+    cx = pos[0]
+    base_y = pos[1]
+    total_w = sum(font.size(c)[0] for c in text)
+    cx -= total_w // 2
+    for i, ch in enumerate(text):
+        col = KAWAII_RAINBOW[(i + tick // 6) % len(KAWAII_RAINBOW)]
+        offset_y = int(math.sin(tick * 0.12 + i * 0.6) * 4) if jitter else 0
+        # Outline
+        outline = font.render(ch, True, (40, 30, 60))
+        for dx, dy in [(-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, 1), (-1, 1), (1, -1)]:
+            surf.blit(outline, (cx + dx, base_y + offset_y + dy))
+        glyph = font.render(ch, True, col)
+        surf.blit(glyph, (cx, base_y + offset_y))
+        cx += font.size(ch)[0]
+
+
+def draw_heart_icon(surf, x, y, size, filled=True, outline=(180, 30, 80)):
+    """Cute pixel heart at (x, y) with given size."""
+    s = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx, cy = size // 2, size // 2
+    fill = (255, 100, 130) if filled else (90, 70, 80)
+    # Two circles + triangle
+    r = size // 4
+    pygame.draw.circle(s, fill, (cx - r, cy - r // 2), r + 1)
+    pygame.draw.circle(s, fill, (cx + r, cy - r // 2), r + 1)
+    pts = [(cx - 2 * r, cy - r // 4), (cx + 2 * r, cy - r // 4),
+           (cx, cy + size // 2 - 1)]
+    pygame.draw.polygon(s, fill, pts)
+    pygame.draw.circle(s, outline, (cx - r, cy - r // 2), r + 1, 2)
+    pygame.draw.circle(s, outline, (cx + r, cy - r // 2), r + 1, 2)
+    pygame.draw.lines(s, outline, False,
+                      [(cx - 2 * r, cy - r // 4), (cx, cy + size // 2 - 1),
+                       (cx + 2 * r, cy - r // 4)], 2)
+    # Specular highlight
+    pygame.draw.circle(s, (255, 230, 240), (cx - r, cy - r), max(1, r // 3))
+    surf.blit(s, (x, y))
+
+
+def draw_coin_icon(surf, x, y, size):
+    """Gold coin with star, rotates slightly with time."""
+    s = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx, cy = size // 2, size // 2
+    pygame.draw.circle(s, (255, 200, 60), (cx, cy), size // 2 - 1)
+    pygame.draw.circle(s, (200, 130, 30), (cx, cy), size // 2 - 1, 2)
+    pygame.draw.circle(s, (255, 240, 160),
+                       (cx - size // 6, cy - size // 6), max(1, size // 8))
+    star = "*"
+    f = pygame.font.SysFont("consolas", max(8, size - 6), bold=True)
+    g = f.render(star, True, (180, 100, 30))
+    s.blit(g, (cx - g.get_width() // 2, cy - g.get_height() // 2 - 1))
+    surf.blit(s, (x, y))
+
+
+def draw_gem_icon(surf, x, y, size):
+    """Cyan diamond / gem icon."""
+    s = pygame.Surface((size, size), pygame.SRCALPHA)
+    cx = size // 2
+    top = 1
+    mid_y = size // 3
+    bot = size - 2
+    pts = [(cx, top), (size - 2, mid_y), (cx, bot), (1, mid_y)]
+    pygame.draw.polygon(s, (140, 220, 255), pts)
+    pygame.draw.polygon(s, (60, 140, 200), pts, 2)
+    # Inner facets
+    pygame.draw.line(s, (220, 245, 255), (cx, top), (cx, bot), 1)
+    pygame.draw.line(s, (220, 245, 255), (cx, top), (1, mid_y), 1)
+    pygame.draw.polygon(s, (255, 255, 255),
+                        [(cx, top + 1), (cx + 3, mid_y - 2), (cx - 1, mid_y - 1)])
+    surf.blit(s, (x, y))
+
+
+def draw_sparkle(surf, x, y, size, color=(255, 255, 200), alpha=255):
+    """4-point sparkle / star burst."""
+    s = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
+    cx = size
+    pygame.draw.line(s, (*color, alpha), (cx, 0), (cx, size * 2 - 1), 2)
+    pygame.draw.line(s, (*color, alpha), (0, cx), (size * 2 - 1, cx), 2)
+    pygame.draw.line(s, (*color, alpha // 2),
+                     (size // 2, size // 2), (size + size // 2, size + size // 2), 1)
+    pygame.draw.line(s, (*color, alpha // 2),
+                     (size + size // 2, size // 2), (size // 2, size + size // 2), 1)
+    pygame.draw.circle(s, (255, 255, 255, alpha), (cx, cx), 2)
+    surf.blit(s, (x - cx, y - cx))
+
+
+def draw_pastel_starfield(surf, tick, density=70):
+    """Animated background of soft pastel sparkles + drifting stars."""
+    for i in range(density):
+        x = (i * 71 + tick * 0.4) % SW
+        y = (i * 53 + tick * 0.18) % SH
+        col = KAWAII_RAINBOW[i % len(KAWAII_RAINBOW)]
+        pulse = abs(math.sin(tick * 0.04 + i * 0.7))
+        a = int(60 + pulse * 140)
+        sz = 1 + (i % 3)
+        ps = pygame.Surface((sz * 2 + 4, sz * 2 + 4), pygame.SRCALPHA)
+        pygame.draw.circle(ps, (*col, a), (sz + 2, sz + 2), sz)
+        surf.blit(ps, (int(x), int(y)))
+        if i % 9 == 0:
+            draw_sparkle(surf, int(x), int(y), 6,
+                         color=(255, 255, 220), alpha=int(120 * pulse + 40))
+
 
 # ═══════════════════════════════════════
 #  SOUND FX
@@ -732,6 +960,7 @@ class Tank:
         self.muzzle_frame = -1
         self.frozen_timer = 0
         self.tier = 0  # player upgrade tier (0..4)
+        self.name = ""  # optional name tag (player only)
 
     def get_grid(self):
         return int(self.x // TS), int(self.y // TS)
@@ -955,6 +1184,21 @@ class Tank:
                 pygame.draw.rect(surf, (20, 20, 20), (bx_bar - 1, ey, bw + 2, 4), border_radius=1)
                 ew = int(bw * self.energy / self.max_energy)
                 pygame.draw.rect(surf, (50, 200, 255), (bx_bar, ey + 1, ew, 2), border_radius=1)
+
+        # Floating name tag above player tank
+        if self.tank_type == "player" and self.name:
+            label = FONT_SM.render(self.name, True, (255, 255, 255))
+            tag_w = label.get_width() + 14
+            tag_h = label.get_height() + 4
+            tag_x = draw_x - tag_w // 2
+            tag_y = draw_y - s_ts // 2 - int(20 * scale) - tag_h
+            tag = pygame.Surface((tag_w, tag_h), pygame.SRCALPHA)
+            pygame.draw.rect(tag, (40, 30, 70, 220), (0, 0, tag_w, tag_h),
+                             border_radius=tag_h // 2)
+            pygame.draw.rect(tag, (255, 200, 230, 255), (0, 0, tag_w, tag_h),
+                             2, border_radius=tag_h // 2)
+            surf.blit(tag, (tag_x, tag_y))
+            surf.blit(label, (tag_x + 7, tag_y + 2))
 
 # ═══════════════════════════════════════
 #  ENEMY AI
@@ -1215,9 +1459,36 @@ class Game:
         self.total_kills = 0
         self.total_money_earned = 0
         self.player_tier = 0  # persisted across levels
+        self.gems = 10
+        self.player_name = os.environ.get("TANK_PLAYER_NAME", "Thuanvuse")
+
+        # Kawaii title menu
+        self.menu_buttons = ["CHIẾN ĐẤU", "GA-RA", "NÂNG CẤP", "THÀNH TỰU"]
+        self.menu_sel = 0
+
+        # Garage / skin selection
+        self.skin_idx = 0
+        self.skin_names = ["NEKO KEM", "HOA ANH ĐÀO", "BAY GIỮA TRỜI",
+                           "PHÙ THUỶ OẢI HƯƠNG", "CẦU VỒNG MAX"]
+        self.unlocked_skins = {0}
+
+        # Achievements (id -> (name_vi, desc_vi))
+        self.achievement_defs = [
+            ("FIRST_BLOOD", "DIỆT MỞ MÀN", "Diệt kẻ địch đầu tiên"),
+            ("LEVEL_5", "VƯỢT MÀN 5", "Hoàn thành màn 5"),
+            ("LEVEL_10", "VƯỢT MÀN 10", "Hoàn thành màn 10"),
+            ("BOSS_SLAYER", "SÁT THỦ BOSS", "Hạ gục 1 Boss"),
+            ("RICH", "PHÚ HỘ", "Tích luỹ 5000 vàng"),
+            ("MAX_TIER", "TANK TỐI THƯỢNG", "Đạt tank cấp 4 (MAX)"),
+            ("FROZEN_HUNTER", "THỢ SĂN BĂNG", "Dùng ĐÓNG BĂNG 3 lần"),
+            ("GRENADIER", "PHÁO THỦ", "Dùng LỰU ĐẠN 5 lần"),
+        ]
+        self.achievements_unlocked = set()
+        self.freeze_uses = 0
+        self.grenade_uses = 0
 
         # Pause
-        self.pause_items = ["TIEP TUC", "CHOI LAI", "VAO SHOP", "CACH CHOI", "VE SANH", "THOAT GAME"]
+        self.pause_items = ["TIẾP TỤC", "CHƠI LẠI", "VÀO SHOP", "CÁCH CHƠI", "VỀ SẢNH", "THOÁT GAME"]
         self.pause_sel = 0
 
         # Shop
@@ -1254,7 +1525,9 @@ class Game:
         }
 
     def get_theme_for_level(self, level):
-        themes = ["default", "desert", "jungle", "snow", "city", "lava"]
+        # Lead with kawaii_woodland so players see the new theme on level 1
+        themes = ["kawaii_woodland", "default", "desert", "jungle",
+                  "snow", "city", "lava"]
         return themes[(level - 1) % len(themes)]
 
     def start_level(self, level):
@@ -1277,6 +1550,7 @@ class Game:
         # Player
         self.player = Tank(new_cols // 2 - 2, new_rows - 2, "player")
         self.player.tier = self.player_tier
+        self.player.name = self.player_name
 
         if self.auto_mode:
             self.player.speed = 3.5
@@ -1311,27 +1585,27 @@ class Game:
         if level == 1:
             self.total_enemies = 3
             self.max_alive = 1
-            self.mission_text = "NHIEM VU: TIEU DIET 3 XE TANG DICH"
+            self.mission_text = "NHIỆM VỤ: TIÊU DIỆT 3 XE TĂNG ĐỊCH"
             self.mission_timer = 240
         elif level == 2:
             self.total_enemies = 4
             self.max_alive = 2
             num_chickens = 5
-            self.mission_text = "NHIEM VU: GIET GA LAY TIEN DE MUA DO"
+            self.mission_text = "NHIỆM VỤ: GIẾT GÀ LẤY TIỀN ĐỂ MUA ĐỒ"
             self.mission_timer = 240
         elif level == 3:
             self.total_enemies = 8
             self.max_alive = 4
             num_chickens = 4
             num_dogs = 2
-            self.mission_text = "CANH BAO: CO CHO DIEN XUAT HIEN!"
+            self.mission_text = "CẢNH BÁO: CÓ CHÓ ĐIÊN XUẤT HIỆN!"
             self.mission_timer = 240
         elif is_boss_level:
             self.total_enemies = 3 + level
             self.max_alive = min(5 + level // 2, 12)
             num_chickens = 3
             num_dogs = 2
-            self.mission_text = f"BOSS FIGHT! MAN {level} - BOSS XUAT HIEN!"
+            self.mission_text = f"ĐẠI CHIẾN BOSS! MÀN {level} - BOSS XUẤT HIỆN!"
             self.mission_timer = 300
             snd_boss_alert.play()
         else:
@@ -1339,7 +1613,7 @@ class Game:
             self.max_alive = min(3 + level, 10)
             num_chickens = 3 + level
             num_dogs = 1 + level // 3
-            self.mission_text = f"NHIEM VU: TIEU DIET {self.total_enemies} KE DICH"
+            self.mission_text = f"NHIỆM VỤ: TIÊU DIỆT {self.total_enemies} KẺ ĐỊCH"
             self.mission_timer = 180
 
         self.enemies_to_spawn = self.total_enemies
@@ -1404,21 +1678,21 @@ class Game:
         self.shake_amount = min(self.shake_amount + 5, 25)
 
         if self.combo == 2:
-            floating_texts.append(FloatingText(x, y - 20, "DOUBLE KILL!", (255, 100, 255)))
+            floating_texts.append(FloatingText(x, y - 20, "HẠ ĐÔI!", (255, 100, 255)))
             self.money += 20
         elif self.combo == 3:
-            floating_texts.append(FloatingText(x, y - 20, "TRIPLE KILL!!", (255, 50, 50)))
+            floating_texts.append(FloatingText(x, y - 20, "HẠ BA!!", (255, 50, 50)))
             self.money += 50
             snd_combo.play()
         elif self.combo == 4:
-            floating_texts.append(FloatingText(x, y - 20, "RAMPAGE!!!", (255, 0, 0)))
+            floating_texts.append(FloatingText(x, y - 20, "ĐIÊN CUỒNG!!!", (255, 0, 0)))
             self.money += 100
             snd_combo.play()
         elif self.combo >= 5:
-            floating_texts.append(FloatingText(x, y - 20, "GODLIKE!!!!!", (255, 0, 255), huge=True))
+            floating_texts.append(FloatingText(x, y - 20, "THẦN THÁNH!!!!!", (255, 0, 255), huge=True))
             self.money += 200
             snd_combo.play()
-            trigger_achievement("GODLIKE!", "5+ combo trong 1 chuoi!", (255, 0, 255))
+            trigger_achievement("THẦN THÁNH!", "5+ chuỗi trong 1 loạt!", (255, 0, 255))
 
         if random.random() < 0.2 + (self.combo * 0.05):
             self.items.append(Item(int(x // TS), int(y // TS), "money"))
@@ -1514,6 +1788,24 @@ class Game:
                 else:
                     self.auto_path = []
 
+    def _activate_menu_selection(self):
+        choice = self.menu_buttons[self.menu_sel]
+        if choice == "CHIẾN ĐẤU":
+            def start():
+                self.score = 0; self.lives = 3; self.money = 0
+                self.total_kills = 0; self.total_money_earned = 0
+                self.player_tier = self.skin_idx  # start at chosen skin tier
+                self.start_level(1)
+                self.state = "level_start"
+                pygame.mixer.music.stop()
+            transition.start(start)
+        elif choice == "GA-RA":
+            self.state = "garage"
+        elif choice == "NÂNG CẤP":
+            self.state = "shop"
+        elif choice == "THÀNH TỰU":
+            self.state = "achievements"
+
     def handle_event(self, ev):
         if ev.type == pygame.KEYDOWN:
             # Global hotkeys (work in any state)
@@ -1521,18 +1813,31 @@ class Game:
                 toggle_fullscreen()
                 return
             if self.state == "title":
-                if ev.key == pygame.K_RETURN:
-                    def start():
-                        self.score = 0; self.lives = 3; self.money = 0
-                        self.total_kills = 0; self.total_money_earned = 0
-                        self.player_tier = 0
-                        self.start_level(1)
-                        self.state = "level_start"
-                        pygame.mixer.music.stop()
-                    transition.start(start)
+                if ev.key in (pygame.K_DOWN, pygame.K_s):
+                    self.menu_sel = (self.menu_sel + 1) % len(self.menu_buttons)
+                elif ev.key in (pygame.K_UP, pygame.K_w):
+                    self.menu_sel = (self.menu_sel - 1) % len(self.menu_buttons)
+                elif ev.key == pygame.K_RETURN:
+                    self._activate_menu_selection()
                 elif ev.key == pygame.K_h:
                     self.state = "tutorial"
                     self.tutorial_page = 0
+            elif self.state == "garage":
+                if ev.key in (pygame.K_LEFT, pygame.K_a):
+                    self.skin_idx = (self.skin_idx - 1) % len(self.skin_names)
+                elif ev.key in (pygame.K_RIGHT, pygame.K_d):
+                    self.skin_idx = (self.skin_idx + 1) % len(self.skin_names)
+                elif ev.key == pygame.K_RETURN:
+                    if self.skin_idx not in self.unlocked_skins:
+                        cost = (self.skin_idx + 1) * 200
+                        if self.gems >= cost:
+                            self.gems -= cost
+                            self.unlocked_skins.add(self.skin_idx)
+                elif ev.key == pygame.K_ESCAPE:
+                    self.state = "title"
+            elif self.state == "achievements":
+                if ev.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                    self.state = "title"
             elif self.state == "tutorial":
                 if ev.key == pygame.K_ESCAPE or ev.key == pygame.K_RETURN:
                     self.state = "title"
@@ -1553,14 +1858,14 @@ class Game:
                         self.player.max_hp = 10
                         self.player.hp = 10
                         self.player.shield = 5
-                        msg = "AUTO BUFF: ON"
+                        msg = "BUFF TỰ ĐỘNG: BẬT"
                     else:
                         self.player.speed = 1.8
                         self.player.shoot_delay = 20
                         normal_max = 3 + min(self.level // 3, 3)
                         self.player.max_hp = normal_max
                         self.player.hp = min(self.player.hp, normal_max)
-                        msg = "AUTO BUFF: OFF"
+                        msg = "BUFF TỰ ĐỘNG: TẮT"
                     c = (80, 255, 130) if self.auto_mode else (255, 100, 80)
                     floating_texts.append(FloatingText(self.player.x, self.player.y - 40, msg, c))
 
@@ -1568,7 +1873,7 @@ class Game:
                     self.auto_algo_idx = (self.auto_algo_idx + 1) % len(self.auto_algos)
                     self.auto_algo = self.auto_algos[self.auto_algo_idx]
                     self.auto_path = []
-                    floating_texts.append(FloatingText(self.player.x, self.player.y - 80, f"ALGO: {self.auto_algo}", (255, 255, 0), huge=True))
+                    floating_texts.append(FloatingText(self.player.x, self.player.y - 80, f"THUẬT TOÁN: {self.auto_algo}", (255, 255, 0), huge=True))
 
                 if ev.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = ev.key - pygame.K_1
@@ -1590,22 +1895,22 @@ class Game:
                     self.pause_sel = (self.pause_sel + 1) % len(self.pause_items)
                 elif ev.key == pygame.K_RETURN:
                     sel = self.pause_items[self.pause_sel]
-                    if sel == "TIEP TUC": self.state = "playing"
-                    elif sel == "CHOI LAI":
+                    if sel == "TIẾP TỤC": self.state = "playing"
+                    elif sel == "CHƠI LẠI":
                         self.start_level(self.level)
                         pygame.mixer.music.stop()
-                    elif sel == "VAO SHOP":
+                    elif sel == "VÀO SHOP":
                         self.state = "shop"
                         try: pygame.mixer.music.play(-1)
                         except Exception: pass
-                    elif sel == "CACH CHOI":
+                    elif sel == "CÁCH CHƠI":
                         self.state = "tutorial"
                         self.tutorial_page = 0
-                    elif sel == "VE SANH":
+                    elif sel == "VỀ SẢNH":
                         self.state = "title"
                         try: pygame.mixer.music.play(-1)
                         except Exception: pass
-                    elif sel == "THOAT GAME":
+                    elif sel == "THOÁT GAME":
                         pygame.quit(); sys.exit()
 
             elif self.state in ("gameover", "level_clear"):
@@ -1732,7 +2037,7 @@ class Game:
                     d.alive = False
                     spawn_particles(d.x, d.y, (150, 100, 50), 10)
                     self.shake_amount = 10
-                    floating_texts.append(FloatingText(self.player.x, self.player.y, "CHO CAN!", (255, 50, 50)))
+                    floating_texts.append(FloatingText(self.player.x, self.player.y, "CHÓ CẮN!", (255, 50, 50)))
                     if killed:
                         self.explosions.append(Explosion(self.player.x, self.player.y, big=True))
                         snd_explode.play()
@@ -1765,6 +2070,9 @@ class Game:
                         if tile == CRATE or random.random() < 0.1:
                             item_kinds = ["health", "shield", "speed", "star", "rapid", "multi",
                                           "pierce", "bomb", "freeze", "grenade", "max_power"]
+                            # Sprinkle a rare gem drop (~6%) for kawaii currency
+                            if random.random() < 0.06:
+                                item_kinds = item_kinds + ["gem"]
                             self.items.append(Item(gx, gy, random.choice(item_kinds)))
                     if bullet.kind != "pierce":
                         bullet.alive = False
@@ -1799,7 +2107,7 @@ class Game:
                         val = random.choice([50, 100, 200])
                         self.register_kill(c.x, c.y, val)
                         spawn_particles(c.x, c.y, (255, 255, 100), 12)
-                        floating_texts.append(FloatingText(c.x, c.y, f"+{val}$", (255, 215, 0)))
+                        floating_texts.append(FloatingText(c.x, c.y, f"+{val}đ", (255, 215, 0)))
 
                 for d in self.dogs:
                     if d.alive and abs(bullet.x - d.x) < 18 and abs(bullet.y - d.y) < 18:
@@ -1807,7 +2115,7 @@ class Game:
                         self.register_kill(d.x, d.y, 150)
                         self.explosions.append(Explosion(d.x, d.y))
                         spawn_particles(d.x, d.y, (150, 100, 50), 15)
-                        floating_texts.append(FloatingText(d.x, d.y, "DOG KILLED!", (255, 150, 50)))
+                        floating_texts.append(FloatingText(d.x, d.y, "HẠ CHÓ!", (255, 150, 50)))
 
                 for enemy in self.enemies:
                     if enemy.alive and abs(bullet.x - enemy.x) < 12 and abs(bullet.y - enemy.y) < 12:
@@ -1820,7 +2128,7 @@ class Game:
                             elif enemy.tank_type == "boss":
                                 base_score = 1000
                                 self.stats["bosses_killed"] += 1
-                                trigger_achievement("BOSS SLAYER!", f"Ha guc Boss man {self.level}!", (255, 100, 50))
+                                trigger_achievement("HẠ BOSS!", f"Hạ gục Boss màn {self.level}!", (255, 100, 50))
                             self.register_kill(enemy.x, enemy.y, base_score)
                             self.explosions.append(Explosion(enemy.x, enemy.y, big=True))
                             spawn_particles(enemy.x, enemy.y, (255, 150, 50), 15)
@@ -1843,7 +2151,12 @@ class Game:
                 if item.kind == "money":
                     gain = random.randint(50, 150)
                     self.money += gain; self.total_money_earned += gain
-                    floating_texts.append(FloatingText(self.player.x, self.player.y, f"+{gain}$", (255, 215, 0)))
+                    floating_texts.append(FloatingText(self.player.x, self.player.y, f"+{gain}đ", (255, 215, 0)))
+                elif item.kind == "gem":
+                    gain = random.randint(2, 5)
+                    self.gems += gain
+                    floating_texts.append(FloatingText(self.player.x,
+                        self.player.y, f"+{gain} ĐÁ QUÝ", (140, 220, 255)))
                 else:
                     self.apply_item_ultra(item.kind)
                 self.items.remove(item)
@@ -1872,47 +2185,47 @@ class Game:
             if self.grid[ty][tx] == EMPTY: rx, ry = tx, ty; break
         self.player = Tank(rx, ry, "player")
         spawn_particles(ox, oy, (255, 50, 50), 20)
-        floating_texts.append(FloatingText(ox, oy, "RESPAWNED!", (255, 255, 255)))
+        floating_texts.append(FloatingText(ox, oy, "HỒI SINH!", (255, 255, 255)))
 
     def apply_item_ultra(self, kind):
         if kind == "health":
             self.player.hp = min(self.player.max_hp, self.player.hp + 1)
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "+1 HP", (80, 255, 80)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "+1 MÁU", (80, 255, 80)))
         elif kind == "life":
             self.lives += 1
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "1UP! EXTRA LIFE", (255, 50, 150)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "+1 MẠNG!", (255, 50, 150)))
         elif kind == "shield":
             self.player.shield += 3
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "SHIELD UP!", (80, 150, 255)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "GIÁP +!", (80, 150, 255)))
         elif kind == "speed":
             self.player.energy = self.player.max_energy
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "ENERGY REFILL", (80, 255, 130)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "NẠP NĂNG LƯỢNG", (80, 255, 130)))
         elif kind == "rapid":
             self.player.skill = "rapid"; self.player.skill_ammo = 40
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "RAPID FIRE!", (255, 100, 50)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "BẮN SIÊU TỐC!", (255, 100, 50)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "multi":
             self.player.skill = "ammo"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "MULTI-SHOT!", (255, 200, 50)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "BẮN ĐA HƯỚNG!", (255, 200, 50)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "pierce":
             self.player.skill = "pierce"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "PIERCE BULLETS", (80, 200, 255)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "ĐẠN XUYÊN PHÁ!", (80, 200, 255)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "bomb":
             self.player.skill = "bomb"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "BOMB BULLETS", (255, 100, 50)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "ĐẠN NỔ!", (255, 100, 50)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "laser":
             self.player.skill = "laser"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "LASER BEAM!", (0, 255, 180)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "TIA LASER!", (0, 255, 180)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "plasma":
             self.player.skill = "plasma"; self.player.skill_timer = 600
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "PLASMA SHOTS!", (200, 50, 255)))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "ĐẠN PLASMA!", (200, 50, 255)))
             self.player.tier = min(4, self.player.tier + 1)
         elif kind == "star":
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "BOMBA!!!", (255, 50, 50), huge=True))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "BÙM BÙM!!!", (255, 50, 50), huge=True))
             for e in self.enemies:
                 if e.alive and e.spawn_timer <= 0:
                     killed = e.hit(10)
@@ -1923,13 +2236,14 @@ class Game:
             self.shake_amount = 25
         elif kind == "freeze":
             # Freeze every alive enemy for ~5s (300 ticks at 60 FPS)
+            self.freeze_uses += 1
             for e in self.enemies:
                 if e.alive and e.spawn_timer <= 0:
                     e.frozen_timer = 300
             for d in self.dogs:
                 if d.alive:
                     d.frozen_timer = 300
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "FREEZE!", (120, 220, 255), huge=True))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "ĐÓNG BĂNG!", (120, 220, 255), huge=True))
             self.shake_amount = 6
         elif kind == "max_power":
             # Instantly upgrade tank to max tier
@@ -1941,10 +2255,11 @@ class Game:
             self.player.shoot_delay = 8
             self.player.skill = "pierce"
             self.player.skill_timer = 900
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "MAX POWER!", (255, 200, 60), huge=True))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "SỨC MẠNH TỐI ĐA!", (255, 200, 60), huge=True))
             self.shake_amount = 10
         elif kind == "grenade":
             # AOE explosion centered on player; damages enemies within radius
+            self.grenade_uses += 1
             radius = TS * 4
             for e in self.enemies:
                 if e.alive and e.spawn_timer <= 0:
@@ -1971,111 +2286,146 @@ class Game:
                 ey = self.player.y + math.sin(ang) * rr
                 self.explosions.append(Explosion(int(ex), int(ey), big=True))
             spawn_particles(self.player.x, self.player.y, (255, 180, 60), 30)
-            floating_texts.append(FloatingText(self.player.x, self.player.y, "GRENADE!", (90, 220, 90), huge=True))
+            floating_texts.append(FloatingText(self.player.x, self.player.y, "LỰU ĐẠN!", (90, 220, 90), huge=True))
             self.shake_amount = 18
             snd_explode.play()
 
         # Persist tier across levels
         self.player_tier = self.player.tier
+        self._check_achievements()
 
     # ═══════════════════════════════════
     # SHOP
     # ═══════════════════════════════════
     def draw_shop(self):
         s = self._surf
-        # Gradient background
+        # Pastel night-sky gradient
         for y in range(SH):
             t = y / SH
-            c = (int(10 + 20 * t), int(15 + 25 * t), int(30 + 40 * t))
+            c = (int(45 + 25 * t), int(35 + 25 * t), int(75 + 35 * t))
             pygame.draw.line(s, c, (0, y), (SW, y))
+        draw_pastel_starfield(s, self.tick, density=40)
 
-        # Header
-        header_h = 80
-        header_s = pygame.Surface((SW, header_h), pygame.SRCALPHA)
-        pygame.draw.rect(header_s, (20, 30, 60, 220), (0, 0, SW, header_h))
-        s.blit(header_s, (0, 0))
+        # Header band
+        header_h = 70
+        draw_kawaii_panel(s, (12, 8, SW - 24, header_h), fill=(60, 45, 100),
+                          border=(255, 200, 230), radius=18,
+                          shadow_offset=4, glow=False)
+        draw_rainbow_text(s, "CỬA HÀNG", (SW // 2, 14), FONT_TITLE,
+                          tick=self.tick)
 
-        title = FONT_TITLE.render("CUA HANG XE TANG", True, (255, 220, 50))
-        shadow = FONT_TITLE.render("CUA HANG XE TANG", True, (100, 80, 0))
-        s.blit(shadow, (SW // 2 - title.get_width() // 2 + 2, 12))
-        s.blit(title, (SW // 2 - title.get_width() // 2, 10))
+        # Currency + backpack pills under header
+        self._draw_currency_panel(s, SW - 270, 12)
 
-        # Decorative line
-        pygame.draw.line(s, (255, 220, 50), (40, header_h - 5), (SW - 40, header_h - 5), 2)
-
-        # Balance
-        money_text = FONT_MED.render(f"TAI KHOAN: ${self.money}", True, (100, 255, 120))
-        s.blit(money_text, (SW // 2 - money_text.get_width() // 2, header_h + 5))
-
-        # Backpack status
-        bp_text = FONT_SM.render(f"BALO: {len(self.backpack)}/3", True, (180, 180, 200))
-        s.blit(bp_text, (SW - 100, header_h + 8))
+        bp_panel_x, bp_panel_y, bp_w, bp_h = 24, 24, 200, 38
+        draw_kawaii_panel(s, (bp_panel_x, bp_panel_y, bp_w, bp_h),
+                          fill=(70, 50, 110), border=(180, 230, 255),
+                          radius=14, shadow_offset=2, glow=False)
+        bp_t = FONT_MED.render(f"BA LÔ {len(self.backpack)}/3", True,
+                               (255, 240, 220))
+        s.blit(bp_t, (bp_panel_x + 16, bp_panel_y + 8))
+        # Backpack item icons
+        for i in range(3):
+            slot_x = bp_panel_x + 110 + i * 28
+            slot_y = bp_panel_y + 6
+            pygame.draw.rect(s, (40, 30, 70),
+                             (slot_x, slot_y, 24, 24), border_radius=6)
+            pygame.draw.rect(s, (180, 200, 255),
+                             (slot_x, slot_y, 24, 24), 2, border_radius=6)
+            if i < len(self.backpack):
+                k = self.backpack[i]
+                if k in sprites.items:
+                    icon = pygame.transform.scale(sprites.items[k], (20, 20))
+                    s.blit(icon, (slot_x + 2, slot_y + 2))
 
         items = [
-            ("1", "DAN DA HUONG", "Ban ra 3 tia cuc manh", 500, "multi"),
-            ("2", "BAN SIEU TOC", "Dan toc do cao lien tuc", 800, "rapid"),
-            ("3", "DAN XUYEN THAU", "Ban xuyen tuong & ke dich", 600, "pierce"),
-            ("4", "GIAP THEP", "Tang 3 diem giap bao ve", 300, "shield"),
-            ("5", "SUA CHUA XE", "Hoi day mau ngay lap tuc", 200, "health"),
-            ("6", "THEM MANG", "Tang 1 mang du phong", 1000, "life"),
-            ("7", "BOM NUKE", "Huy diet toan bo ke thu", 1000, "star"),
-            ("8", "NANG LUONG", "Hoi day nang luong nitro", 150, "speed"),
-            ("9", "TIA LASER", "Ban tia laser sieu manh", 900, "laser"),
-            ("0", "DAN PLASMA", "Dan plasma huy diet", 750, "plasma"),
+            ("1", "ĐẠN ĐA HƯỚNG", "Bắn ra 3 tia cực mạnh",     500,  "multi",   "gold"),
+            ("2", "BẮN SIÊU TỐC", "Đạn tốc độ cao liên tục",   800,  "rapid",   "gold"),
+            ("3", "ĐẠN XUYÊN THẤU", "Bắn xuyên tường & kẻ địch", 600, "pierce",  "gold"),
+            ("4", "GIÁP THÉP",    "Tăng 3 điểm giáp bảo vệ",   300,  "shield",  "gold"),
+            ("5", "SỬA CHỮA XE",  "Hồi đầy máu ngay lập tức",  200,  "health",  "gold"),
+            ("6", "THÊM MẠNG",    "Tăng 1 mạng dự phòng",      1000, "life",    "gold"),
+            ("7", "BOM NGUYÊN TỬ", "Huỷ diệt toàn bộ kẻ thù",   1000, "star",    "gold"),
+            ("8", "NĂNG LƯỢNG",   "Hồi đầy năng lượng nitro",  150,  "speed",   "gold"),
+            ("9", "TIA LASER",    "Bắn tia laser siêu mạnh",   900,  "laser",   "gold"),
+            ("0", "ĐẠN PLASMA",   "Đạn plasma huỷ diệt",       750,  "plasma",  "gold"),
+            ("-", "GÓI GEM x10",  "Đổi vàng lấy 10 gem kawaii", 500,  "gem",     "gold"),
+            ("=", "GÓI GEM x50",  "Đổi vàng lấy 50 gem (ưu đãi)", 2000, "gem",   "gold"),
         ]
 
-        start_y = header_h + 30
-        for i, (key, name, desc, price, kind) in enumerate(items):
+        start_y = 90
+        card_h = 70
+        for i, (key, name, desc, price, kind, currency) in enumerate(items):
             col = i % 2
             row = i // 2
             bx = 30 + col * (SW // 2 - 10)
-            by = start_y + row * 78
+            by = start_y + row * (card_h + 8)
             w = SW // 2 - 50
 
-            # Card background
-            affordable = self.money >= price
-            card_color = (40, 55, 85) if affordable else (30, 30, 40)
-            border_color = (80, 130, 200) if affordable else (50, 50, 60)
+            balance = self.money if currency == "gold" else self.gems
+            affordable = balance >= price
+            color_idx = i % 5
+            base_colors = [
+                ((255, 170, 210), (255, 100, 160)),
+                ((255, 220, 140), (255, 170, 60)),
+                ((180, 230, 255), (110, 180, 240)),
+                ((200, 255, 200), (110, 220, 130)),
+                ((220, 200, 255), (170, 130, 240)),
+            ]
+            light, dark = base_colors[color_idx]
+            fill = (60, 45, 95) if affordable else (35, 30, 60)
+            border = light if affordable else (110, 90, 130)
+            draw_kawaii_panel(s, (bx, by, w, card_h), fill=fill, border=border,
+                              radius=14, shadow_offset=3, glow=False)
 
-            pygame.draw.rect(s, card_color, (bx, by, w, 68), border_radius=10)
-            pygame.draw.rect(s, border_color, (bx, by, w, 68), 2, border_radius=10)
+            # Hotkey badge (round pastel pill)
+            kx, ky, ks = bx + 12, by + 10, 28
+            pygame.draw.circle(s, dark, (kx + ks // 2, ky + ks // 2), ks // 2)
+            pygame.draw.circle(s, (255, 255, 255),
+                               (kx + ks // 2, ky + ks // 2), ks // 2, 2)
+            kl = FONT_MED.render(key, True, (255, 255, 255))
+            s.blit(kl, (kx + ks // 2 - kl.get_width() // 2,
+                        ky + ks // 2 - kl.get_height() // 2))
 
-            # Gloss
-            gloss = pygame.Surface((w - 4, 20), pygame.SRCALPHA)
-            pygame.draw.rect(gloss, (255, 255, 255, 15), (0, 0, w - 4, 20), border_radius=8)
-            s.blit(gloss, (bx + 2, by + 2))
-
-            # Key
-            key_c = (255, 215, 0) if affordable else (80, 80, 80)
-            key_bg = pygame.Surface((28, 28), pygame.SRCALPHA)
-            pygame.draw.rect(key_bg, (*key_c[:3], 40), (0, 0, 28, 28), border_radius=6)
-            pygame.draw.rect(key_bg, key_c, (0, 0, 28, 28), 2, border_radius=6)
-            s.blit(key_bg, (bx + 8, by + 8))
-            kl = FONT_MED.render(key, True, key_c)
-            s.blit(kl, (bx + 22 - kl.get_width() // 2, by + 12))
-
-            # Icon
+            # Item icon
             if kind in sprites.items:
-                s.blit(sprites.items[kind], (bx + 10, by + 38))
+                s.blit(sprites.items[kind], (bx + 12, by + 38))
+            elif kind == "gem":
+                draw_gem_icon(s, bx + 12, by + 38, 26)
 
-            # Name & Desc
-            name_c = (255, 255, 255) if affordable else (120, 120, 120)
-            name_t = FONT_MED.render(name, True, name_c)
-            s.blit(name_t, (bx + 45, by + 10))
-            desc_t = FONT_SM.render(desc, True, (150, 155, 170))
-            s.blit(desc_t, (bx + 45, by + 32))
+            # Name + desc
+            name_c = (255, 255, 255) if affordable else (160, 150, 180)
+            s.blit(FONT_MED.render(name, True, name_c), (bx + 50, by + 10))
+            s.blit(FONT_SM.render(desc, True, (210, 220, 240) if affordable
+                                  else (130, 130, 160)),
+                   (bx + 50, by + 33))
 
-            # Price
-            p_c = (80, 255, 120) if affordable else (255, 80, 80)
-            p_t = FONT_MED.render(f"${price}", True, p_c)
-            s.blit(p_t, (bx + 45, by + 48))
+            # Price (icon + amount, right-aligned in card)
+            p_c = (130, 240, 160) if affordable else (255, 140, 140)
+            p_t = FONT_MED.render(f"{price:,}", True, p_c)
+            ic_size = 22
+            ic_x = bx + w - p_t.get_width() - ic_size - 18
+            ic_y = by + card_h - 30
+            if currency == "gold":
+                draw_coin_icon(s, ic_x, ic_y, ic_size)
+            else:
+                draw_gem_icon(s, ic_x, ic_y, ic_size)
+            s.blit(p_t, (ic_x + ic_size + 4, ic_y + 1))
 
-        # Continue
+        # Continue button
         pulse = abs(math.sin(self.tick * 0.08))
-        msg = "[ ENTER ] MAN TIEP THEO" if self.won_level else "[ ENTER ] CHOI LAI"
-        c_val = int(180 + pulse * 75)
-        instr = FONT_MED.render(msg, True, (c_val, 255, c_val))
-        s.blit(instr, (SW // 2 - instr.get_width() // 2, SH - 45))
+        msg = "[ ENTER ]  TIẾP TỤC " + (
+            "MÀN TIẾP THEO" if self.won_level else "CHƠI LẠI MÀN")
+        instr = FONT_MED.render(msg, True,
+                                (int(200 + 55 * pulse), 255, int(200 + 55 * pulse)))
+        bw, bh = instr.get_width() + 60, 44
+        bx = SW // 2 - bw // 2
+        by = SH - bh - 12
+        draw_kawaii_panel(s, (bx, by, bw, bh), fill=(70, 50, 110),
+                          border=(180, 240, 200), radius=22,
+                          shadow_offset=3, glow=True)
+        s.blit(instr, (SW // 2 - instr.get_width() // 2,
+                       by + (bh - instr.get_height()) // 2))
 
     def handle_shop_events(self, ev):
         if ev.type == pygame.KEYDOWN:
@@ -2088,25 +2438,41 @@ class Game:
                 transition.start(start_next)
 
             prices = {"1": 500, "2": 800, "3": 600, "4": 300, "5": 200,
-                      "6": 1000, "7": 1000, "8": 150, "9": 900, "0": 750}
-            kinds = {"1": "multi", "2": "rapid", "3": "pierce", "4": "shield", "5": "health",
-                     "6": "life", "7": "star", "8": "speed", "9": "laser", "0": "plasma"}
+                      "6": 1000, "7": 1000, "8": 150, "9": 900, "0": 750,
+                      "-": 500, "=": 2000}
+            kinds = {"1": "multi", "2": "rapid", "3": "pierce", "4": "shield",
+                     "5": "health", "6": "life", "7": "star", "8": "speed",
+                     "9": "laser", "0": "plasma",
+                     "-": "gem10", "=": "gem50"}
             key_name = pygame.key.name(ev.key)
             if key_name in prices:
                 cost = prices[key_name]
-                if self.money >= cost:
-                    if len(self.backpack) < 3:
-                        self.money -= cost
-                        self.stats["money_spent"] += cost
-                        snd_buy.play()
-                        self.backpack.append(kinds[key_name])
-                        floating_texts.append(FloatingText(SW // 2, SH // 2, f"DA THEM {kinds[key_name].upper()}!", (100, 255, 100), center_bounce=True))
-                    else:
-                        snd_deny.play()
-                        floating_texts.append(FloatingText(SW // 2, SH // 2, "BALO DAY!", (255, 80, 80), center_bounce=True))
-                else:
+                kind = kinds[key_name]
+                if self.money < cost:
                     snd_deny.play()
-                    floating_texts.append(FloatingText(SW // 2, SH // 2, "KHONG DU TIEN!", (255, 80, 80), center_bounce=True))
+                    floating_texts.append(FloatingText(SW // 2, SH // 2,
+                        "KHÔNG ĐỦ VÀNG!", (255, 80, 80), center_bounce=True))
+                elif kind in ("gem10", "gem50"):
+                    gain = 10 if kind == "gem10" else 50
+                    self.money -= cost
+                    self.gems += gain
+                    self.stats["money_spent"] += cost
+                    snd_buy.play()
+                    floating_texts.append(FloatingText(SW // 2, SH // 2,
+                        f"+{gain} ĐÁ QUÝ!", (180, 220, 255),
+                        center_bounce=True))
+                elif len(self.backpack) >= 3:
+                    snd_deny.play()
+                    floating_texts.append(FloatingText(SW // 2, SH // 2,
+                        "BA LÔ ĐẦY!", (255, 80, 80), center_bounce=True))
+                else:
+                    self.money -= cost
+                    self.stats["money_spent"] += cost
+                    snd_buy.play()
+                    self.backpack.append(kind)
+                    floating_texts.append(FloatingText(SW // 2, SH // 2,
+                        f"ĐÃ THÊM {kind.upper()}!",
+                        (100, 255, 100), center_bounce=True))
 
     # ═══════════════════════════════════
     # DRAW
@@ -2125,6 +2491,8 @@ class Game:
 
         if self.state == "title": self.draw_title()
         elif self.state == "tutorial": self.draw_tutorial()
+        elif self.state == "garage": self.draw_garage()
+        elif self.state == "achievements": self.draw_achievements()
         elif self.state == "level_start": self.draw_level_start()
         elif self.state == "playing": self.draw_game()
         elif self.state == "shop": self.draw_shop()
@@ -2290,61 +2658,75 @@ class Game:
         hud_h = 60
         hud_y = SH - hud_h
 
-        # HUD background with gradient
+        # Kawaii HUD background — pastel gradient bar with rounded top
         hud_bg = pygame.Surface((SW, hud_h), pygame.SRCALPHA)
         for i in range(hud_h):
-            a = int(200 + 55 * (i / hud_h))
-            pygame.draw.line(hud_bg, (20, 22, 30, min(255, a)), (0, i), (SW, i))
+            t = i / hud_h
+            r = int(45 + 25 * t)
+            g = int(30 + 20 * t)
+            b = int(75 + 30 * t)
+            pygame.draw.line(hud_bg, (r, g, b, 235), (0, i), (SW, i))
         surf.blit(hud_bg, (0, hud_y))
-
-        # Top border line with gradient
+        # Rainbow ribbon along the top edge
         for x in range(SW):
-            t = abs(x - SW // 2) / (SW // 2)
-            c = (int(60 + 80 * (1 - t)), int(100 + 60 * (1 - t)), int(180 + 75 * (1 - t)))
-            surf.set_at((x, hud_y), c)
-        pygame.draw.line(surf, (40, 60, 100), (0, hud_y + 1), (SW, hud_y + 1), 1)
+            seg = (x // 80) % len(KAWAII_RAINBOW)
+            col = KAWAII_RAINBOW[seg]
+            for dy in range(2):
+                surf.set_at((x, hud_y + dy), col)
 
-        # Lives
-        lives_t = FONT_SM.render(f"LIVES:", True, (150, 155, 175))
-        surf.blit(lives_t, (10, hud_y + 8))
+        # ── LIVES with heart icons ──
+        lives_lbl = FONT_SM.render("MẠNG", True, (255, 220, 240))
+        surf.blit(lives_lbl, (12, hud_y + 6))
         for i in range(max(0, self.lives)):
-            icon = pygame.transform.scale(sprites.tanks["player"][0], (18, 18))
-            surf.blit(icon, (60 + i * 22, hud_y + 6))
+            draw_heart_icon(surf, 12 + i * 26, hud_y + 24, 22, filled=True)
 
-        # Score & Money
-        score_t = FONT_MED.render(f"SCORE: {self.score}", True, (255, 215, 0))
-        surf.blit(score_t, (10, hud_y + 30))
-        money_t = FONT_SM.render(f"${self.money}", True, (100, 255, 120))
-        surf.blit(money_t, (score_t.get_width() + 20, hud_y + 35))
+        # ── SCORE ── (under lives)
+        score_t = FONT_MED.render(f"{self.score:,}", True, (255, 240, 180))
+        surf.blit(score_t, (140, hud_y + 28))
+        sc_lbl = FONT_SM.render("ĐIỂM", True, (200, 200, 240))
+        surf.blit(sc_lbl, (140, hud_y + 12))
 
         # Level badge
-        badge_x = SW // 2 - 50
+        badge_w = 200
+        badge_x = SW // 2 - badge_w // 2
         theme_colors = {
             "default": (50, 100, 150), "desert": (180, 140, 60), "snow": (100, 150, 200),
-            "city": (80, 80, 100), "jungle": (40, 120, 60), "lava": (150, 50, 30)
+            "city": (80, 80, 100), "jungle": (40, 120, 60), "lava": (150, 50, 30),
+            "kawaii_woodland": (230, 150, 200),
         }
         bc = theme_colors.get(self.map_theme, (50, 100, 150))
-        pygame.draw.rect(surf, bc, (badge_x, hud_y + 6, 100, 22), border_radius=11)
-        pygame.draw.rect(surf, (200, 220, 255), (badge_x, hud_y + 6, 100, 22), 1, border_radius=11)
-        lvl_t = FONT_SM.render(f"LEVEL {self.level} - {self.map_theme.upper()}", True, (255, 255, 255))
-        surf.blit(lvl_t, (badge_x + 50 - lvl_t.get_width() // 2, hud_y + 10))
+        pygame.draw.rect(surf, bc, (badge_x, hud_y + 6, badge_w, 22), border_radius=11)
+        pygame.draw.rect(surf, (200, 220, 255), (badge_x, hud_y + 6, badge_w, 22), 1, border_radius=11)
+        theme_short = {
+            "default": "CHIẾN TRƯỜNG",
+            "desert": "SA MẠC",
+            "snow": "BĂNG GIÁ",
+            "city": "THÀNH PHỐ",
+            "jungle": "RỪNG RẬM",
+            "lava": "NÚI LỬA",
+            "kawaii_woodland": "RỪNG KAWAII",
+        }.get(self.map_theme, self.map_theme.upper())
+        lvl_t = FONT_SM.render(f"MÀN {self.level} • {theme_short}", True, (255, 255, 255))
+        surf.blit(lvl_t, (badge_x + badge_w // 2 - lvl_t.get_width() // 2, hud_y + 10))
 
         # Enemies left
         left = max(0, self.total_enemies - self.kills)
-        e_t = FONT_SM.render(f"ENEMIES: {left}", True, (255, 100, 100))
+        e_t = FONT_SM.render(f"KẺ ĐỊCH: {left}", True, (255, 100, 100))
         surf.blit(e_t, (SW - 150, hud_y + 8))
         for i in range(min(left, 8)):
             mini = pygame.transform.scale(sprites.tanks["enemy_a"][2], (12, 12))
             surf.blit(mini, (SW - 150 + i * 14, hud_y + 28))
 
-        # Auto mode
+        # Auto mode (placed below the level badge so it never overlaps)
+        auto_x = badge_x
+        auto_y = hud_y + 30
         if self.auto_mode:
             pulse = abs(math.sin(self.tick * 0.2))
             c = (int(50 + 200 * pulse), 255, int(100 + 150 * pulse))
-            surf.blit(FONT_SM.render(f"AUTO: {self.auto_algo}", True, c), (badge_x + 110, hud_y + 10))
-            surf.blit(FONT_SM.render("[F]OFF [G]ALGO", True, (120, 140, 120)), (badge_x + 110, hud_y + 26))
+            surf.blit(FONT_SM.render(f"TỰ ĐỘNG: {self.auto_algo}", True, c), (auto_x, auto_y))
+            surf.blit(FONT_SM.render("[F]TẮT  [G]ĐỔI", True, (120, 140, 120)), (auto_x + 110, auto_y))
         else:
-            surf.blit(FONT_SM.render("[F]AUTO", True, (80, 100, 80)), (badge_x + 110, hud_y + 15))
+            surf.blit(FONT_SM.render("[F] TỰ ĐỘNG", True, (80, 100, 80)), (auto_x, auto_y))
 
         # Skill indicator
         if self.player and self.player.skill:
@@ -2353,7 +2735,7 @@ class Game:
             sc = skill_colors.get(self.player.skill, (200, 200, 200))
             skill_name = self.player.skill.upper()
             if self.player.skill == "ammo": skill_name = "MULTI"
-            st = FONT_SM.render(f"SKILL: {skill_name}", True, sc)
+            st = FONT_SM.render(f"KỸ NĂNG: {skill_name}", True, sc)
             surf.blit(st, (badge_x - 100, hud_y + 35))
             if self.player.skill_timer > 0:
                 bar_w = 60
@@ -2365,7 +2747,7 @@ class Game:
         if self.combo > 1:
             pulse = abs(math.sin(self.tick * 0.3))
             c = (255, int(150 + pulse * 100), 50)
-            combo_t = FONT_MED.render(f"x{self.combo} COMBO", True, c)
+            combo_t = FONT_MED.render(f"x{self.combo} CHUỖI", True, c)
             surf.blit(combo_t, (badge_x - 90, hud_y + 8))
             cw = 60
             cx = badge_x - 90
@@ -2380,18 +2762,19 @@ class Game:
         s.fill((0, 0, 0, 180))
 
         # Theme name
-        theme_names = {"default": "CHIEN TRUONG", "desert": "SA MAC", "snow": "BANG GIA",
-                      "city": "THANH PHO", "jungle": "RUNG RAM", "lava": "NUI LUA"}
-        theme_name = theme_names.get(self.map_theme, "CHIEN TRUONG")
+        theme_names = {"default": "CHIẾN TRƯỜNG", "desert": "SA MẠC", "snow": "BĂNG GIÁ",
+                      "city": "THÀNH PHỐ", "jungle": "RỪNG RẬM", "lava": "NÚI LỬA",
+                      "kawaii_woodland": "RỪNG KAWAII"}
+        theme_name = theme_names.get(self.map_theme, "CHIẾN TRƯỜNG")
 
         # Level number
-        lvl_t = FONT_HUGE.render(f"MAN {self.level}", True, (255, 220, 50))
-        shadow = FONT_HUGE.render(f"MAN {self.level}", True, (100, 80, 0))
+        lvl_t = FONT_HUGE.render(f"MÀN {self.level}", True, (255, 220, 50))
+        shadow = FONT_HUGE.render(f"MÀN {self.level}", True, (100, 80, 0))
         s.blit(shadow, (SW // 2 - lvl_t.get_width() // 2 + 3, SH // 2 - 100 + 3))
         s.blit(lvl_t, (SW // 2 - lvl_t.get_width() // 2, SH // 2 - 100))
 
         # Theme
-        theme_t = FONT_MED.render(f"DIA HINH: {theme_name}", True, (180, 200, 255))
+        theme_t = FONT_MED.render(f"ĐỊA HÌNH: {theme_name}", True, (180, 200, 255))
         s.blit(theme_t, (SW // 2 - theme_t.get_width() // 2, SH // 2 - 40))
 
         # Mission
@@ -2405,107 +2788,286 @@ class Game:
         if self.level % 5 == 0:
             pulse = abs(math.sin(self.tick * 0.15))
             warn_c = (255, int(50 + 200 * pulse), int(50 * pulse))
-            warn_t = FONT_BIG.render("!! BOSS XUAT HIEN !!", True, warn_c)
+            warn_t = FONT_BIG.render("!! BOSS XUẤT HIỆN !!", True, warn_c)
             s.blit(warn_t, (SW // 2 - warn_t.get_width() // 2, SH // 2 + 55))
 
         pulse = abs(math.sin(self.tick * 0.1))
-        instr = FONT_MED.render("NHAN [ SPACE ] DE BAT DAU", True, (int(150 + pulse * 105), int(180 + pulse * 75), 255))
+        instr = FONT_MED.render("NHẤN [ SPACE ] ĐỂ BẮT ĐẦU", True, (int(150 + pulse * 105), int(180 + pulse * 75), 255))
         s.blit(instr, (SW // 2 - instr.get_width() // 2, SH // 2 + 100))
 
         self._surf.blit(s, (0, 0))
 
     def draw_title(self):
         s = self._surf
-        # Gradient background
+        # Pastel night-sky gradient background
         for y in range(SH):
             t = y / SH
-            r = int(8 + 15 * t)
-            g = int(10 + 12 * t)
-            b = int(20 + 35 * t)
-            pygame.draw.line(s, (r, g, b), (0, y), (SW, y))
+            r = int(28 + 30 * t + 10 * math.sin(self.tick * 0.01 + t * 3))
+            g = int(20 + 25 * t)
+            b = int(60 + 45 * t)
+            pygame.draw.line(s, (min(255, r), min(255, g), min(255, b)),
+                             (0, y), (SW, y))
 
-        # Animated background tanks
+        # Sparkly starfield
+        draw_pastel_starfield(s, self.tick, density=80)
+
+        # Subtle background tanks (kawaii style — small + transparent)
         for tank in self.title_tanks:
             tk = tank['type']
             d = tank['dir']
             if tk in sprites.tanks:
                 img = sprites.tanks[tk][d]
-                img = pygame.transform.scale(img, (40, 40))
-                alpha_s = pygame.Surface((40, 40), pygame.SRCALPHA)
+                img = pygame.transform.scale(img, (36, 36))
+                alpha_s = pygame.Surface((36, 36), pygame.SRCALPHA)
                 alpha_s.blit(img, (0, 0))
-                alpha_s.set_alpha(40)
-                s.blit(alpha_s, (int(tank['x']) - 20, int(tank['y']) - 20))
+                alpha_s.set_alpha(35)
+                s.blit(alpha_s, (int(tank['x']) - 18, int(tank['y']) - 18))
 
-        # Floating particles
-        for i in range(60):
-            x = (i * 67 + self.tick * 0.3) % SW
-            y = (i * 43 + self.tick * 0.15) % SH
-            c = [(255, 100, 80), (80, 200, 255), (255, 200, 50), (100, 255, 100), (200, 100, 255)][i % 5]
-            sz = 1 + (i % 3)
-            a = int(20 + abs(math.sin(self.tick * 0.02 + i)) * 40)
-            ps = pygame.Surface((sz * 2 + 2, sz * 2 + 2), pygame.SRCALPHA)
-            pygame.draw.circle(ps, (*c, a), (sz + 1, sz + 1), sz)
-            s.blit(ps, (int(x), int(y)))
+        # Currency panel (top-right) — drawn first so title centers cleanly
+        self._draw_currency_panel(s, SW - 270, 12)
+        # Player profile panel (top-left)
+        self._draw_profile_panel(s, 12, 12)
 
-        # Title with rainbow cycle
-        title = "TANK DAI CHIEN"
-        hue = (self.tick * 2) % 360
-        r = int(200 + 55 * abs(math.sin(math.radians(hue))))
-        g = int(180 + 55 * abs(math.sin(math.radians(hue + 120))))
-        b = int(50 + 50 * abs(math.sin(math.radians(hue + 240))))
+        # Title with kawaii rainbow gradient (below the side panels)
+        draw_rainbow_text(s, "KAWAII TANK KINGDOM", (SW // 2, 100),
+                          FONT_TITLE, tick=self.tick)
+        sub = FONT_SM.render(":  TANK ĐẠI CHIẾN  :", True, (255, 220, 240))
+        s.blit(sub, (SW // 2 - sub.get_width() // 2, 158))
 
-        shadow = FONT_TITLE.render(title, True, (60, 40, 0))
-        s.blit(shadow, (SW // 2 - shadow.get_width() // 2 + 3, SH // 2 - 178))
-        title_surf = FONT_TITLE.render(title, True, (r, g, b))
-        s.blit(title_surf, (SW // 2 - title_surf.get_width() // 2, SH // 2 - 180))
-
-        # Subtitle
-        sub = FONT_MED.render("ULTIMATE EDITION v3.0", True, (80, 220, 255))
-        s.blit(sub, (SW // 2 - sub.get_width() // 2, SH // 2 - 130))
-
-        # Tank preview
+        # 5-tank preview row
         tank_types = ["player", "enemy_a", "enemy_b", "elite", "boss"]
-        labels = ["BAN", "DICH A", "DICH B", "TINH NHUE", "BOSS"]
+        labels = ["NEKO", "ĐỊCH", "NHANH", "TINH NHUỆ", "BOSS"]
+        preview_y = 188
         for i, (tk, label) in enumerate(zip(tank_types, labels)):
-            bx = SW // 2 - 200 + i * 85
-            by = SH // 2 - 80
-            pygame.draw.rect(s, (20, 22, 40), (bx - 3, by - 3, 70, 75), border_radius=8)
-            pygame.draw.rect(s, (50, 80, 130), (bx - 3, by - 3, 70, 75), 1, border_radius=8)
+            bx = SW // 2 - 235 + i * 95
+            by = preview_y
+            draw_kawaii_panel(s, (bx, by, 80, 90), fill=(70, 50, 100),
+                              border=KAWAII_RAINBOW[i % len(KAWAII_RAINBOW)],
+                              radius=14, shadow_offset=3, glow=False)
             d = (self.tick // 30 + i) % 4
-            if tk in sprites.tanks:
+            if tk == "player":
+                tier = min(len(sprites.player_tiers) - 1, self.skin_idx)
+                tank_img = sprites.player_tiers[tier][d]
+            elif tk in sprites.tanks:
                 tank_img = sprites.tanks[tk][d]
-                big = pygame.transform.scale(tank_img, (50, 50))
-                s.blit(big, (bx + 7, by + 2))
-            lbl = FONT_SM.render(label, True, (200, 200, 220))
-            s.blit(lbl, (bx + 32 - lbl.get_width() // 2, by + 55))
+            else:
+                tank_img = None
+            if tank_img is not None:
+                big = pygame.transform.scale(tank_img, (52, 52))
+                s.blit(big, (bx + 14, by + 8))
+            lbl = FONT_SM.render(label, True, (255, 240, 200))
+            s.blit(lbl, (bx + 40 - lbl.get_width() // 2, by + 65))
 
-        # Controls info
-        controls = [
-            "WASD / Phim Mui Ten: Di chuyen    SPACE: Ban    SHIFT: Chay nhanh",
-            "F: Che do Tu dong    G: Doi thuat toan    1-3: Dung vat pham",
-            "ESC: Tam dung    H: Huong dan choi",
+        # Big menu buttons
+        btn_w, btn_h = 260, 52
+        gap = 14
+        total_h = len(self.menu_buttons) * (btn_h + gap) - gap
+        start_y = SH - total_h - 60
+        icons = [
+            lambda surf, x, y, sz: surf.blit(
+                pygame.transform.scale(sprites.player_tiers[
+                    min(len(sprites.player_tiers) - 1, self.skin_idx)][1],
+                    (sz, sz)), (x, y)),
+            lambda surf, x, y, sz: surf.blit(
+                pygame.transform.scale(sprites.tanks["player"][2], (sz, sz)),
+                (x, y)),
+            draw_coin_icon,
+            lambda surf, x, y, sz: draw_heart_icon(surf, x, y, sz, filled=True),
         ]
-        for i, line in enumerate(controls):
-            c = (140, 150, 170)
-            txt = FONT_SM.render(line, True, c)
-            s.blit(txt, (SW // 2 - txt.get_width() // 2, SH // 2 + 25 + i * 20))
+        for i, label in enumerate(self.menu_buttons):
+            bx = SW // 2 - btn_w // 2
+            by = start_y + i * (btn_h + gap)
+            draw_kawaii_button(s, (bx, by, btn_w, btn_h), label, FONT_MED,
+                               selected=(i == self.menu_sel), color_idx=i,
+                               tick=self.tick, icon_fn=icons[i])
 
-        # Start button
-        pulse = abs(math.sin(self.tick * 0.06))
-        btn_w, btn_h = 320, 45
-        btn_x, btn_y = SW // 2 - btn_w // 2, SH // 2 + 100
+        # Help footer
+        hint = "  ↑/↓  chọn  •  ENTER  vào  •  H  hướng dẫn  •  F11  toàn màn hình"
+        ht = FONT_SM.render(hint, True, (255, 220, 240))
+        s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
 
-        glow = pygame.Surface((btn_w + 20, btn_h + 20), pygame.SRCALPHA)
-        pygame.draw.rect(glow, (80, 200, 255, int(20 + pulse * 40)), (0, 0, btn_w + 20, btn_h + 20), border_radius=22)
-        s.blit(glow, (btn_x - 10, btn_y - 10))
-        pygame.draw.rect(s, (15, 40, 70), (btn_x, btn_y, btn_w, btn_h), border_radius=12)
-        pygame.draw.rect(s, (int(80 + pulse * 120), int(180 + pulse * 75), 255), (btn_x, btn_y, btn_w, btn_h), 2, border_radius=12)
-        start_t = FONT_MED.render("NHAN ENTER DE BAT DAU", True, (int(200 + 55 * pulse), int(220 + 35 * pulse), 255))
-        s.blit(start_t, (SW // 2 - start_t.get_width() // 2, btn_y + 10))
+    def _draw_currency_panel(self, surf, x, y):
+        """Top-right currency display: gold + gems."""
+        w, h = 250, 70
+        draw_kawaii_panel(surf, (x, y, w, h), fill=(50, 35, 80),
+                          border=(255, 200, 230), radius=14,
+                          shadow_offset=3, glow=False)
+        # Gold row
+        draw_coin_icon(surf, x + 12, y + 8, 22)
+        gt = FONT_MED.render(f"{self.money:,}", True, (255, 240, 180))
+        surf.blit(gt, (x + 42, y + 9))
+        plus_g = FONT_SM.render("+", True, (255, 255, 200))
+        pygame.draw.circle(surf, (90, 200, 110), (x + w - 22, y + 19), 11)
+        surf.blit(plus_g, (x + w - 25, y + 12))
+        # Gem row
+        draw_gem_icon(surf, x + 12, y + 38, 22)
+        gemt = FONT_MED.render(f"{self.gems:,}", True, (200, 240, 255))
+        surf.blit(gemt, (x + 42, y + 39))
+        pygame.draw.circle(surf, (90, 200, 110), (x + w - 22, y + 49), 11)
+        surf.blit(plus_g, (x + w - 25, y + 42))
 
-        # Tutorial button
-        tut_t = FONT_SM.render("[ H ] HUONG DAN CHOI", True, (120, 160, 200))
-        s.blit(tut_t, (SW // 2 - tut_t.get_width() // 2, btn_y + btn_h + 15))
+    def draw_garage(self):
+        s = self._surf
+        for y in range(SH):
+            t = y / SH
+            pygame.draw.line(s, (int(35 + 20 * t), int(25 + 15 * t),
+                                 int(70 + 40 * t)), (0, y), (SW, y))
+        draw_pastel_starfield(s, self.tick, density=60)
+        # Title
+        draw_rainbow_text(s, "GA-RA", (SW // 2, 30), FONT_TITLE, tick=self.tick)
+        sub = FONT_SM.render("Chọn mẫu tank của bạn", True, (255, 220, 240))
+        s.blit(sub, (SW // 2 - sub.get_width() // 2, 90))
+
+        # Currency panel
+        self._draw_currency_panel(s, SW - 270, 12)
+
+        # Big tank preview at center
+        center_x, center_y = SW // 2, 290
+        panel_w, panel_h = 360, 280
+        draw_kawaii_panel(s, (center_x - panel_w // 2, center_y - panel_h // 2,
+                              panel_w, panel_h),
+                          fill=(60, 45, 95),
+                          border=KAWAII_RAINBOW[self.skin_idx % 6],
+                          radius=18, shadow_offset=4, glow=True)
+        tier = min(len(sprites.player_tiers) - 1, self.skin_idx)
+        d = (self.tick // 30) % 4
+        big = pygame.transform.scale(sprites.player_tiers[tier][d], (180, 180))
+        s.blit(big, (center_x - 90, center_y - 110))
+        # Stats per tier
+        stats_list = [
+            ("MÁU", 4 + self.skin_idx),
+            ("TỐC ĐỘ BẮN", 5 + self.skin_idx),
+            ("SỨC MẠNH ĐẠN", 1 + self.skin_idx // 2),
+            ("GIÁP", self.skin_idx),
+        ]
+        for i, (lbl, val) in enumerate(stats_list):
+            yy = center_y + 60 + i * 18
+            lt = FONT_SM.render(lbl, True, (200, 220, 255))
+            s.blit(lt, (center_x - 130, yy))
+            for j in range(5):
+                col = (255, 220, 80) if j < val else (90, 60, 100)
+                pygame.draw.rect(s, col,
+                                 (center_x + 10 + j * 20, yy + 2, 16, 10),
+                                 border_radius=3)
+
+        # Skin name + status
+        name = self.skin_names[self.skin_idx]
+        nt = FONT_BIG.render(name, True, (255, 240, 200))
+        s.blit(nt, (center_x - nt.get_width() // 2, center_y + 130))
+        if self.skin_idx in self.unlocked_skins:
+            stat = FONT_MED.render("ĐÃ MỞ KHÓA", True, (130, 240, 160))
+            s.blit(stat, (center_x - stat.get_width() // 2, center_y + 165))
+        else:
+            cost = (self.skin_idx + 1) * 200
+            stat = FONT_MED.render(f"GIÁ: {cost} ĐÁ QUÝ", True, (200, 220, 255))
+            s.blit(stat, (center_x - stat.get_width() // 2, center_y + 165))
+
+        # Left/right arrows
+        for dx, key, sym in [(-1, "<", "<"), (+1, ">", ">")]:
+            ax = center_x + dx * (panel_w // 2 + 50)
+            ay = center_y - 20
+            pulse = abs(math.sin(self.tick * 0.1 + dx))
+            r = int(30 + pulse * 6)
+            pygame.draw.circle(s, (80, 60, 120), (ax, ay), r)
+            pygame.draw.circle(s, (255, 200, 230), (ax, ay), r, 3)
+            ar = FONT_BIG.render(sym, True, (255, 255, 255))
+            s.blit(ar, (ax - ar.get_width() // 2, ay - ar.get_height() // 2))
+
+        # Bottom hint bar
+        hint = "←/→ đổi tank   ENTER mua bằng gem   ESC quay lại"
+        ht = FONT_SM.render(hint, True, (255, 230, 240))
+        s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
+
+    def draw_achievements(self):
+        s = self._surf
+        for y in range(SH):
+            t = y / SH
+            pygame.draw.line(s, (int(40 + 20 * t), int(30 + 15 * t),
+                                 int(70 + 35 * t)), (0, y), (SW, y))
+        draw_pastel_starfield(s, self.tick, density=50)
+
+        draw_rainbow_text(s, "THÀNH TỰU", (SW // 2, 30), FONT_TITLE,
+                          tick=self.tick)
+        unlocked_count = len(self.achievements_unlocked)
+        total = len(self.achievement_defs)
+        sub = FONT_MED.render(f"{unlocked_count}/{total} đã đạt",
+                              True, (255, 240, 200))
+        s.blit(sub, (SW // 2 - sub.get_width() // 2, 95))
+
+        # Grid of achievement cards
+        cols = 2
+        card_w, card_h = 360, 70
+        gap_x, gap_y = 30, 16
+        total_w = cols * card_w + (cols - 1) * gap_x
+        start_x = SW // 2 - total_w // 2
+        start_y = 140
+        for i, (key, name_vi, label) in enumerate(self.achievement_defs):
+            row = i // cols
+            col = i % cols
+            x = start_x + col * (card_w + gap_x)
+            y = start_y + row * (card_h + gap_y)
+            unlocked = key in self.achievements_unlocked
+            border = (255, 220, 100) if unlocked else (110, 90, 130)
+            fill = (75, 55, 110) if unlocked else (45, 35, 70)
+            draw_kawaii_panel(s, (x, y, card_w, card_h), fill=fill,
+                              border=border, radius=14, shadow_offset=3,
+                              glow=unlocked)
+            # Trophy / lock icon
+            ic_x, ic_y = x + 18, y + card_h // 2
+            if unlocked:
+                # Star/trophy
+                pygame.draw.circle(s, (255, 220, 80), (ic_x + 14, ic_y), 18)
+                pygame.draw.circle(s, (200, 130, 30), (ic_x + 14, ic_y), 18, 3)
+                star = FONT_MED.render("*", True, (255, 100, 30))
+                s.blit(star, (ic_x + 14 - star.get_width() // 2,
+                              ic_y - star.get_height() // 2))
+            else:
+                pygame.draw.rect(s, (90, 80, 110),
+                                 (ic_x, ic_y - 12, 28, 24), border_radius=4)
+                pygame.draw.rect(s, (200, 200, 220),
+                                 (ic_x + 4, ic_y - 18, 20, 16), 2,
+                                 border_radius=8)
+            # Text
+            nt = FONT_MED.render(name_vi, True,
+                                 (255, 240, 220) if unlocked else (170, 160, 190))
+            s.blit(nt, (x + 60, y + 14))
+            dt = FONT_SM.render(label, True,
+                                (220, 220, 250) if unlocked else (140, 130, 160))
+            s.blit(dt, (x + 60, y + 40))
+
+        # Hint
+        hint = "ENTER hoặc ESC quay lại"
+        ht = FONT_SM.render(hint, True, (255, 230, 240))
+        s.blit(ht, (SW // 2 - ht.get_width() // 2, SH - 28))
+
+    def _check_achievements(self):
+        u = self.achievements_unlocked
+        if self.total_kills >= 1: u.add("FIRST_BLOOD")
+        if self.level >= 5 and self.stats.get("levels_completed", 0) >= 5:
+            u.add("LEVEL_5")
+        if self.level >= 10 and self.stats.get("levels_completed", 0) >= 10:
+            u.add("LEVEL_10")
+        if self.stats.get("bosses_killed", 0) >= 1: u.add("BOSS_SLAYER")
+        if self.total_money_earned >= 5000: u.add("RICH")
+        if self.player_tier >= 4: u.add("MAX_TIER")
+        if self.freeze_uses >= 3: u.add("FROZEN_HUNTER")
+        if self.grenade_uses >= 5: u.add("GRENADIER")
+
+    def _draw_profile_panel(self, surf, x, y):
+        """Player profile (top-left): tank avatar + name."""
+        w, h = 230, 70
+        draw_kawaii_panel(surf, (x, y, w, h), fill=(50, 35, 80),
+                          border=(180, 220, 255), radius=14,
+                          shadow_offset=3, glow=False)
+        # Avatar
+        tier = min(len(sprites.player_tiers) - 1, self.skin_idx)
+        avatar = pygame.transform.scale(sprites.player_tiers[tier][0], (50, 50))
+        surf.blit(avatar, (x + 8, y + 10))
+        # Name
+        nm = FONT_MED.render("NGƯỜI CHƠI", True, (255, 240, 220))
+        surf.blit(nm, (x + 70, y + 8))
+        nick = FONT_SM.render(self.player_name, True, (180, 220, 255))
+        surf.blit(nick, (x + 70, y + 35))
 
     def draw_tutorial(self):
         s = self._surf
@@ -2514,49 +3076,49 @@ class Game:
             pygame.draw.line(s, (int(10 + 15 * t), int(12 + 18 * t), int(25 + 35 * t)), (0, y), (SW, y))
 
         # Header
-        title = FONT_TITLE.render("HUONG DAN CHOI", True, (255, 220, 50))
+        title = FONT_TITLE.render("HƯỚNG DẪN CHƠI", True, (255, 220, 50))
         s.blit(title, (SW // 2 - title.get_width() // 2, 15))
         pygame.draw.line(s, (255, 220, 50), (50, 65), (SW - 50, 65), 2)
 
         pages = [
             {
-                "title": "DIEU KHIEN CO BAN",
+                "title": "ĐIỀU KHIỂN CƠ BẢN",
                 "items": [
-                    ("W A S D / Phim Mui Ten", "Di chuyen xe tang 4 huong"),
-                    ("SPACE", "Ban dan - giu de ban lien tuc"),
-                    ("SHIFT + Di chuyen", "Chay nhanh (ton nang luong)"),
-                    ("ESC", "Tam dung / Menu"),
-                    ("Phim 1, 2, 3", "Su dung vat pham trong balo"),
+                    ("W A S D / Phím Mũi Tên", "Di chuyển xe tăng 4 hướng"),
+                    ("SPACE", "Bắn đạn - giữ để bắn liên tục"),
+                    ("SHIFT + Di chuyển", "Chạy nhanh (tốn năng lượng)"),
+                    ("ESC", "Tạm dừng / Menu"),
+                    ("Phím 1, 2, 3", "Sử dụng vật phẩm trong ba lô"),
                 ]
             },
             {
-                "title": "CHE DO TU DONG (AUTO)",
+                "title": "CHẾ ĐỘ TỰ ĐỘNG (AUTO)",
                 "items": [
-                    ("Phim F", "Bat/Tat che do tu dong (co buff)"),
-                    ("Phim G", "Doi thuat toan: A*, BFS, DFS"),
-                    ("A* (Mac dinh)", "Tim duong ngan nhat, co pha tuong"),
-                    ("BFS", "Tim duong rong, chi di duong trong"),
-                    ("DFS", "Tim duong sau, ngau nhien hon"),
+                    ("Phím F", "Bật/Tắt chế độ tự động (có buff)"),
+                    ("Phím G", "Đổi thuật toán: A*, BFS, DFS"),
+                    ("A* (Mặc định)", "Tìm đường ngắn nhất, có phá tường"),
+                    ("BFS", "Tìm đường rộng, chỉ đi đường trống"),
+                    ("DFS", "Tìm đường sâu, ngẫu nhiên hơn"),
                 ]
             },
             {
-                "title": "VAT PHAM & CUA HANG",
+                "title": "VẬT PHẨM & CỬA HÀNG",
                 "items": [
-                    ("Mau (Health)", "Hoi 1 diem mau"),
-                    ("Giap (Shield)", "Chan 3 phat dan"),
-                    ("Nang luong", "Hoi day thanh chay nhanh"),
-                    ("Nuke (Star)", "Tieu diet toan bo ke dich"),
-                    ("Balo chua toi da 3 vat pham", "Mua trong shop, dung bang phim 1-3"),
+                    ("Máu (Health)", "Hồi 1 điểm máu"),
+                    ("Giáp (Shield)", "Chặn 3 phát đạn"),
+                    ("Năng lượng", "Hồi đầy thanh chạy nhanh"),
+                    ("Bom Nguyên Tử (Star)", "Tiêu diệt toàn bộ kẻ địch"),
+                    ("Ba lô chứa tối đa 3 vật phẩm", "Mua trong shop, dùng bằng phím 1-3"),
                 ]
             },
             {
-                "title": "MAP & BOSS",
+                "title": "BẢN ĐỒ & BOSS",
                 "items": [
-                    ("6 dia hinh", "Chien truong, Sa mac, Bang gia, Thanh pho, Rung, Nui lua"),
-                    ("Moi 5 man", "Boss xuat hien - rat manh!"),
-                    ("Ga", "Ban de lay tien"),
-                    ("Cho", "Duoi can nguoi choi - nguy hiem!"),
-                    ("Can cu", "Bao ve can cu o phia duoi ban do"),
+                    ("7 địa hình", "Rừng Kawaii, Chiến trường, Sa mạc, Băng, Thành phố, Rừng, Núi lửa"),
+                    ("Mỗi 5 màn", "Boss xuất hiện - rất mạnh!"),
+                    ("Gà", "Bắn để lấy tiền"),
+                    ("Chó", "Đuổi cắn người chơi - nguy hiểm!"),
+                    ("Căn cứ", "Bảo vệ căn cứ ở phía dưới bản đồ"),
                 ]
             }
         ]
@@ -2590,7 +3152,7 @@ class Game:
         s.blit(page_t, (SW // 2 - page_t.get_width() // 2, SH - 70))
 
         # Navigation
-        nav_t = FONT_SM.render("[ <- ] Truoc    [ -> ] Tiep    [ ESC/ENTER ] Quay lai", True, (120, 140, 180))
+        nav_t = FONT_SM.render("[ ← ] Trước    [ → ] Tiếp    [ ESC/ENTER ] Quay lại", True, (120, 140, 180))
         s.blit(nav_t, (SW // 2 - nav_t.get_width() // 2, SH - 40))
 
         # Page dots
@@ -2612,25 +3174,25 @@ class Game:
             pygame.draw.rect(vig, (80, 0, 0, 20 - i * 5), (i * 10, i * 10, SW - i * 20, SH - i * 20), i * 5 + 5)
             s.blit(vig, (0, 0))
 
-        text = FONT_HUGE.render("GAME OVER", True, (255, 50, 50))
-        shadow = FONT_HUGE.render("GAME OVER", True, (80, 0, 0))
+        text = FONT_HUGE.render("KẾT THÚC", True, (255, 50, 50))
+        shadow = FONT_HUGE.render("KẾT THÚC", True, (80, 0, 0))
         s.blit(shadow, (SW // 2 - text.get_width() // 2 + 3, SH // 2 - 78))
         s.blit(text, (SW // 2 - text.get_width() // 2, SH // 2 - 80))
 
-        score_t = FONT_MED.render(f"DIEM SO: {self.score}", True, (255, 215, 80))
+        score_t = FONT_MED.render(f"ĐIỂM SỐ: {self.score}", True, (255, 215, 80))
         s.blit(score_t, (SW // 2 - score_t.get_width() // 2, SH // 2 - 10))
 
         stats_lines = [
-            f"Xe tang tieu diet: {self.total_kills}",
-            f"Man dat duoc: {self.level}",
-            f"Combo cao nhat: {self.stats['max_combo']}",
+            f"Xe tăng tiêu diệt: {self.total_kills}",
+            f"Màn đạt được: {self.level}",
+            f"Chuỗi cao nhất: {self.stats['max_combo']}",
         ]
         for i, line in enumerate(stats_lines):
             lt = FONT_SM.render(line, True, (180, 185, 200))
             s.blit(lt, (SW // 2 - lt.get_width() // 2, SH // 2 + 20 + i * 22))
 
         pulse = abs(math.sin(self.tick * 0.05))
-        restart_t = FONT_MED.render("[ ENTER ] DE TIEP TUC", True, (int(180 + 75 * pulse), int(180 + 75 * pulse), 255))
+        restart_t = FONT_MED.render("[ ENTER ] ĐỂ TIẾP TỤC", True, (int(180 + 75 * pulse), int(180 + 75 * pulse), 255))
         s.blit(restart_t, (SW // 2 - restart_t.get_width() // 2, SH // 2 + 100))
 
     def draw_level_clear(self):
@@ -2649,29 +3211,30 @@ class Game:
             pygame.draw.circle(ps, (*c, max(0, a)), (4, 4), 3)
             s.blit(ps, (int(x), int(y)))
 
-        text = FONT_TITLE.render(f"MAN {self.level} HOAN THANH!", True, (80, 255, 130))
-        shadow = FONT_TITLE.render(f"MAN {self.level} HOAN THANH!", True, (0, 60, 20))
+        text = FONT_TITLE.render(f"MÀN {self.level} HOÀN THÀNH!", True, (80, 255, 130))
+        shadow = FONT_TITLE.render(f"MÀN {self.level} HOÀN THÀNH!", True, (0, 60, 20))
         s.blit(shadow, (SW // 2 - text.get_width() // 2 + 2, SH // 2 - 78))
         s.blit(text, (SW // 2 - text.get_width() // 2, SH // 2 - 80))
 
-        score_t = FONT_MED.render(f"DIEM: {self.score}", True, (255, 215, 80))
+        score_t = FONT_MED.render(f"ĐIỂM: {self.score}", True, (255, 215, 80))
         s.blit(score_t, (SW // 2 - score_t.get_width() // 2, SH // 2 - 20))
 
-        kills_t = FONT_SM.render(f"TIEU DIET: {self.kills} / {self.total_enemies}", True, (200, 220, 200))
+        kills_t = FONT_SM.render(f"TIÊU DIỆT: {self.kills} / {self.total_enemies}", True, (200, 220, 200))
         s.blit(kills_t, (SW // 2 - kills_t.get_width() // 2, SH // 2 + 10))
 
-        money_t = FONT_SM.render(f"TIEN: ${self.money}", True, (100, 255, 120))
+        money_t = FONT_SM.render(f"TIỀN: {self.money}đ", True, (100, 255, 120))
         s.blit(money_t, (SW // 2 - money_t.get_width() // 2, SH // 2 + 35))
 
         # Next level preview
         next_theme = self.get_theme_for_level(self.level + 1)
-        theme_names = {"default": "CHIEN TRUONG", "desert": "SA MAC", "snow": "BANG GIA",
-                      "city": "THANH PHO", "jungle": "RUNG RAM", "lava": "NUI LUA"}
-        next_t = FONT_SM.render(f"Man tiep theo: {theme_names.get(next_theme, '???')}", True, (160, 180, 220))
+        theme_names = {"default": "CHIẾN TRƯỜNG", "desert": "SA MẠC", "snow": "BĂNG GIÁ",
+                      "city": "THÀNH PHỐ", "jungle": "RỪNG RẬM", "lava": "NÚI LỬA",
+                      "kawaii_woodland": "RỪNG KAWAII"}
+        next_t = FONT_SM.render(f"Màn tiếp theo: {theme_names.get(next_theme, '???')}", True, (160, 180, 220))
         s.blit(next_t, (SW // 2 - next_t.get_width() // 2, SH // 2 + 60))
 
         pulse = abs(math.sin(self.tick * 0.06))
-        next_btn = FONT_MED.render("[ ENTER ] TIEP TUC", True, (int(180 + 75 * pulse), 255, int(180 + 75 * pulse)))
+        next_btn = FONT_MED.render("[ ENTER ] TIẾP TỤC", True, (int(180 + 75 * pulse), 255, int(180 + 75 * pulse)))
         s.blit(next_btn, (SW // 2 - next_btn.get_width() // 2, SH // 2 + 95))
 
     def draw_pause(self):
@@ -2681,7 +3244,7 @@ class Game:
         overlay.fill((0, 0, 0, 180))
         s.blit(overlay, (0, 0))
 
-        title = FONT_TITLE.render("TAM DUNG", True, (255, 255, 255))
+        title = FONT_TITLE.render("TẠM DỪNG", True, (255, 255, 255))
         s.blit(title, (SW // 2 - title.get_width() // 2, SH // 4 - 20))
 
         for i, item in enumerate(self.pause_items):
@@ -2703,7 +3266,7 @@ class Game:
             rect = txt.get_rect(center=(SW // 2, SH // 2 - 60 + i * 45))
             s.blit(txt, rect)
 
-        instr = FONT_SM.render("[ MUI TEN ] CHON  -  [ ENTER ] DONG Y", True, (100, 110, 130))
+        instr = FONT_SM.render("[ MŨI TÊN ] CHỌN  -  [ ENTER ] ĐỒNG Ý", True, (100, 110, 130))
         s.blit(instr, (SW // 2 - instr.get_width() // 2, SH - 80))
 
     def draw_backpack_ui(self, surf):
@@ -2713,7 +3276,7 @@ class Game:
         by = 10
 
         # Backpack label
-        bp_t = FONT_SM.render("BALO", True, (120, 130, 160))
+        bp_t = FONT_SM.render("BA LÔ", True, (120, 130, 160))
         surf.blit(bp_t, (bx, by - 2))
 
         for i in range(3):
